@@ -99,7 +99,7 @@ export async function getOAuth2Client(): Promise<OAuth2Client> {
       pool.query(
         'UPDATE gmail_sync_state SET access_token = $1, token_expiry = $2 WHERE id = 1',
         [tokens.access_token, tokens.expiry_date?.toString() ?? null]
-      ).catch(err => console.error('[Gmail] Token refresh save error:', err));
+      ).catch((err: unknown) => console.error('[Gmail] Token refresh save error:', err));
     });
   }
   return client;
