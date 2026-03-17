@@ -1,0 +1,179 @@
+import { useState } from 'react';
+import { Plus, ArrowLeft, Settings as SettingsIcon } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Dashboard } from '@/pages/Dashboard';
+import { History } from '@/pages/History';
+import { Settings } from '@/pages/Settings';
+import { Calendar } from '@/pages/Calendar';
+import { Trials } from '@/pages/Trials';
+import { useSubscriptions } from '@/hooks/useSubscriptions';
+import { useNotifications } from '@/hooks/useNotifications';
+
+type Page = 'dashboard' | 'history' | 'settings' | 'calendar' | 'trials';
+
+const PAGE_TITLES: Record<Page, string> = {
+  dashboard: 'מעקב מנויים',
+  history: 'היסטוריה',
+  settings: 'הגדרות',
+  calendar: 'יומן חידושים',
+  trials: 'ניסיונות חינם',
+};
+
+const pageVariants = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } },
+};
+
+export default function App() {
+  const [page, setPage] = useState<Page>('dashboard');
+  const [fabOpen, setFabOpen] = useState(() => sessionStorage.getItem('fabOpen') === 'true');
+
+  function openFab() { sessionStorage.setItem('fabOpen', 'true'); setFabOpen(true); }
+  function closeFab() { sessionStorage.removeItem('fabOpen'); setFabOpen(false); }
+  const { subscriptions } = useSubscriptions();
+  useNotifications(subscriptions);
+
+  const headerBtnStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '10px',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    color: '#94a3b8',
+    fontSize: '13px',
+    fontWeight: 600,
+    fontFamily: "'Heebo', sans-serif",
+  };
+
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      background: '#060b14',
+      backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
+    }}>
+      {/* Header */}
+      <header style={{
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        paddingInlineStart: 'max(20px, env(safe-area-inset-right))',
+        paddingInlineEnd: 'max(20px, env(safe-area-inset-left))',
+        paddingTop: 'max(0px, env(safe-area-inset-top))',
+        position: 'sticky', top: 0, zIndex: 40,
+        background: 'rgba(6,11,20,0.88)', backdropFilter: 'blur(16px)',
+      }}>
+        <div style={{
+          maxWidth: '720px', margin: '0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '16px',
+          height: '56px',
+        }}>
+          {/* Logo / Back button */}
+          {page !== 'dashboard' ? (
+            <button
+              onClick={() => setPage('dashboard')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#818cf8', fontSize: '15px', fontWeight: '600',
+                fontFamily: "'Heebo', sans-serif", padding: '8px 0',
+              }}
+            >
+              <ArrowLeft size={18} /> חזרה
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img
+                src="/icons/icon-192.png"
+                alt="SubTracker"
+                style={{ width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0 }}
+              />
+              <span style={{
+                fontFamily: "'Heebo', sans-serif", fontWeight: '800',
+                fontSize: '17px', color: '#f1f5f9', letterSpacing: '-0.3px',
+              }}>
+                SubTracker
+              </span>
+            </div>
+          )}
+
+          {/* Right side: page title or settings button */}
+          {page !== 'dashboard' ? (
+            <span style={{ fontSize: '15px', fontWeight: '700', color: '#f1f5f9', fontFamily: "'Heebo', sans-serif" }}>
+              {PAGE_TITLES[page]}
+            </span>
+          ) : (
+            <button
+              onClick={() => setPage('settings')}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                padding: '8px',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                flexShrink: 0,
+              }}
+            >
+              <SettingsIcon size={18} />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Page content */}
+      <main
+        className="page-content"
+        style={{
+          maxWidth: '720px', margin: '0 auto',
+          padding: '24px 20px',
+          paddingBottom: `calc(90px + env(safe-area-inset-bottom, 0px))`,
+        }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={page}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {page === 'dashboard' && (
+              <Dashboard onOpenAdd={openFab} fabOpen={fabOpen} onFabClose={closeFab} onNavigate={setPage} />
+            )}
+            {page === 'history' && <History />}
+            {page === 'settings' && <Settings onNavigate={setPage} />}
+            {page === 'calendar' && <Calendar />}
+            {page === 'trials' && <Trials />}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* FAB — Add subscription (dashboard only) */}
+      {page === 'dashboard' && (
+        <button
+          onClick={openFab}
+          style={{
+            position: 'fixed',
+            bottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
+            insetInlineEnd: '20px',
+            zIndex: 50,
+            width: '56px', height: '56px', borderRadius: '50%', border: 'none',
+            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            color: '#fff', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(99,102,241,0.45)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
+          onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          <Plus size={24} />
+        </button>
+      )}
+    </div>
+  );
+}

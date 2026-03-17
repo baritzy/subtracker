@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\Sub Tracker' -type f -name *)",
+      "Bash(dir /s \"c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\Sub Tracker\")",
+      "Bash(npm install:*)",
+      "Bash(npm --version)",
+      "Bash(npm create:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s -X POST http://localhost:3001/api/subscriptions -H \"Content-Type: application/json\" -d '{\"\"company_name\"\":\"\"Netflix\"\",\"\"service_name\"\":\"\"Streaming\"\",\"\"cost\"\":15.99,\"\"billing_cycle\"\":\"\"monthly\"\",\"\"cost_per_cycle\"\":15.99,\"\"renewal_date\"\":\"\"2026-04-20\"\",\"\"cancel_url\"\":\"\"https://www.netflix.com/cancelplan\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/subscriptions/1/cancel)",
+      "Bash(curl -s \"http://localhost:3001/api/subscriptions?status=cancelled\")",
+      "Bash(taskkill /F /IM node.exe)",
+      "Read(//tmp/**)",
+      "Bash(netstat -ano)",
+      "Read(//c/Users/user/Documents/Projects/Sub Tracker/**)",
+      "Bash(xargs -r taskkill /F /PID)",
+      "Bash(findstr \":3001\")",
+      "Bash(cmd /c \"taskkill /F /PID 155736\")",
+      "Bash(powershell -Command \"Stop-Process -Id 155736 -Force -ErrorAction SilentlyContinue; Write-Host ''Done''\")"
+    ]
+  }
+}

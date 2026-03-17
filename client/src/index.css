@@ -1,0 +1,106 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+  font-family: 'Heebo', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #060b14;
+  color: #f1f5f9;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Safe area support for Android/iOS notch & nav bar */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile bottom nav padding */
+.page-content {
+  padding-bottom: calc(72px + var(--safe-bottom));
+}
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Remove input & select defaults on mobile */
+input, select, textarea, button {
+  font-family: 'Heebo', system-ui, sans-serif;
+}
+
+/* Scrollbar (desktop) */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Subscription card hover (desktop only) */
+@media (hover: hover) {
+  .subscription-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    border-color: rgba(255,255,255,0.16) !important;
+  }
+}
+
+/* Mobile-specific tweaks */
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+  .cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .header-padding {
+    padding: 0 16px !important;
+  }
+  .page-padding {
+    padding: 20px 16px !important;
+  }
+}
+
+/* Light theme (simple invert approach) */
+body.theme-light {
+  filter: invert(1) hue-rotate(180deg);
+}
+body.theme-light img {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Logo containers always stay white — counter-invert the container,
+   then reset the img inside so it doesn't get double-inverted */
+body.theme-light .logo-bg {
+  filter: invert(1) hue-rotate(180deg);
+}
+body.theme-light .logo-bg img {
+  filter: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
