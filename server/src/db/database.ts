@@ -1,32 +1,36 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { Pool } from 'pg';
 import fs from 'fs';
+import path from 'path';
 
-const DB_PATH = path.join(__dirname, '../../data/subtracker.db');
-const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-let db: Database.Database;
-
-export function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    runMigrations(db);
-  }
-  return db;
+export async function initDb(): Promise<void> {
+  await runMigrations();
+  console.log('Database initialized.');
 }
 
-function runMigrations(db: Database.Database): void {
-  const files = fs.readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort();
+async function runMigrations(): Promise<void> {
+  const migrationsDir = path.join(__dirname, 'migrations');
+  const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+
   for (const file of files) {
-    try {
-      const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
-      db.exec(sql);
-    } catch (e: unknown) {
-      // ALTER TABLE fails if column already exists — safe to ignore
-      if (!(e instanceof Error) || !e.message.includes('duplicate column')) throw e;
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+    const statements = sql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.replace(/--[^\n]*/g, '').trim().length > 0);
+
+    for (const stmt of statements) {
+      try {
+        await pool.query(stmt);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes('already exists')) continue;
+        throw err;
+      }
     }
   }
-  console.log('Database migrations applied.');
+  console.log('Migrations applied.');
 }

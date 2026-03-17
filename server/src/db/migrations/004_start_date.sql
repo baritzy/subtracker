@@ -1,1 +1,1 @@
-ALTER TABLE subscriptions ADD COLUMN start_date TEXT;
+-- Consolidated into 001_schema.sql

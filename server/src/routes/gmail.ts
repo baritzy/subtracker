@@ -65,9 +65,9 @@ function callbackPage(title: string, body: string, success: boolean): string {
 }
 
 // GET /api/gmail/status  →  connection state + last sync time
-router.get('/status', (_req: Request, res: Response) => {
-  const connected = isGmailConnected();
-  const state = getSyncState();
+router.get('/status', async (_req: Request, res: Response) => {
+  const connected = await isGmailConnected();
+  const state = await getSyncState();
   return res.json({
     connected,
     email: state?.email ?? null,
@@ -76,14 +76,14 @@ router.get('/status', (_req: Request, res: Response) => {
 });
 
 // POST /api/gmail/disconnect  →  clear stored tokens
-router.post('/disconnect', (_req: Request, res: Response) => {
-  disconnectGmail();
+router.post('/disconnect', async (_req: Request, res: Response) => {
+  await disconnectGmail();
   return res.status(204).send();
 });
 
 // POST /api/gmail/sync  →  trigger manual sync
 router.post('/sync', async (_req: Request, res: Response) => {
-  if (!isGmailConnected()) {
+  if (!(await isGmailConnected())) {
     return res.status(401).json({ error: 'Gmail not connected' });
   }
   try {

@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import subscriptionsRouter from './routes/subscriptions';
 import gmailRouter from './routes/gmail';
-import { getDb } from './db/database';
+import { initDb } from './db/database';
 import { startPolling, isGmailConnected } from './services/gmailService';
 import { startRenewalScheduler } from './services/renewalService';
 
@@ -20,22 +21,38 @@ app.use('/api/gmail', gmailRouter);
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Serve React build in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
+
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  // Initialize DB on startup
-  getDb();
-  console.log(`Sub Tracker server running on http://localhost:${PORT}`);
+async function start(): Promise<void> {
+  await initDb();
 
-  // Start Gmail polling if already connected
-  if (isGmailConnected()) {
-    startPolling();
-  }
+  app.listen(PORT, async () => {
+    console.log(`Sub Tracker server running on http://localhost:${PORT}`);
 
-  // Start renewal scheduler (runs on startup + every midnight)
-  startRenewalScheduler();
+    // Start Gmail polling if already connected
+    if (await isGmailConnected()) {
+      startPolling();
+    }
+
+    // Start renewal scheduler (runs on startup + every midnight)
+    startRenewalScheduler();
+  });
+}
+
+start().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

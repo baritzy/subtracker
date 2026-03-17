@@ -1,6 +1,6 @@
 import { google, gmail_v1 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { getDb } from '../db/database';
+import { pool } from '../db/database';
 import { createSubscription, isGmailMessageAlreadyImported } from './subscriptionService';
 
 interface GmailSyncState {
@@ -81,27 +81,25 @@ const DATE_PATTERNS = [
 
 const CANCEL_LINK_PATTERN = /<a[^>]+href="([^"]+)"[^>]*>\s*(cancel|unsubscribe|manage subscription|manage plan)[^<]*/gi;
 
-export function getOAuth2Client(): OAuth2Client {
+export async function getOAuth2Client(): Promise<OAuth2Client> {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost:3001/api/gmail/callback'
   );
-  const state = getSyncState();
+  const state = await getSyncState();
   if (state?.access_token) {
     client.setCredentials({
       access_token: state.access_token,
       refresh_token: state.refresh_token ?? undefined,
       expiry_date: state.token_expiry ? Number(state.token_expiry) : undefined,
     });
-    // Auto-save refreshed tokens
+    // Auto-save refreshed tokens (fire-and-forget is fine here)
     client.on('tokens', (tokens) => {
-      const db = getDb();
-      db.prepare(`
-        UPDATE gmail_sync_state
-        SET access_token = ?, token_expiry = ?
-        WHERE id = 1
-      `).run(tokens.access_token, tokens.expiry_date?.toString() ?? null);
+      pool.query(
+        'UPDATE gmail_sync_state SET access_token = $1, token_expiry = $2 WHERE id = 1',
+        [tokens.access_token, tokens.expiry_date?.toString() ?? null]
+      ).catch(err => console.error('[Gmail] Token refresh save error:', err));
     });
   }
   return client;
@@ -127,18 +125,14 @@ export async function exchangeCodeForTokens(code: string): Promise<void> {
     process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost:3001/api/gmail/callback'
   );
   const { tokens } = await client.getToken(code);
-  const db = getDb();
-  db.prepare(`
-    INSERT INTO gmail_sync_state (id, access_token, refresh_token, token_expiry)
-    VALUES (1, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      access_token = excluded.access_token,
-      refresh_token = COALESCE(excluded.refresh_token, gmail_sync_state.refresh_token),
-      token_expiry = excluded.token_expiry
-  `).run(
-    tokens.access_token ?? null,
-    tokens.refresh_token ?? null,
-    tokens.expiry_date?.toString() ?? null
+  await pool.query(
+    `INSERT INTO gmail_sync_state (id, access_token, refresh_token, token_expiry)
+     VALUES (1, $1, $2, $3)
+     ON CONFLICT(id) DO UPDATE SET
+       access_token = EXCLUDED.access_token,
+       refresh_token = COALESCE(EXCLUDED.refresh_token, gmail_sync_state.refresh_token),
+       token_expiry = EXCLUDED.token_expiry`,
+    [tokens.access_token ?? null, tokens.refresh_token ?? null, tokens.expiry_date?.toString() ?? null]
   );
 
   // Fetch and store the user's email
@@ -153,34 +147,31 @@ export async function exchangeCodeForTokens(code: string): Promise<void> {
     const profile = await gmail.users.getProfile({ userId: 'me' });
     const email = profile.data.emailAddress ?? null;
     if (email) {
-      db.prepare(`UPDATE gmail_sync_state SET email = ? WHERE id = 1`).run(email);
+      await pool.query('UPDATE gmail_sync_state SET email = $1 WHERE id = 1', [email]);
     }
   } catch { /* non-critical */ }
 }
 
-export function getSyncState(): GmailSyncState | null {
-  const db = getDb();
-  return db.prepare('SELECT * FROM gmail_sync_state WHERE id = 1').get() as GmailSyncState | null;
+export async function getSyncState(): Promise<GmailSyncState | null> {
+  const { rows } = await pool.query('SELECT * FROM gmail_sync_state WHERE id = 1');
+  return rows[0] ?? null;
 }
 
-export function isGmailConnected(): boolean {
-  const state = getSyncState();
+export async function isGmailConnected(): Promise<boolean> {
+  const state = await getSyncState();
   return !!(state?.access_token);
 }
 
-export function disconnectGmail(): void {
-  const db = getDb();
-  db.prepare(`
-    UPDATE gmail_sync_state
-    SET access_token = NULL, refresh_token = NULL, token_expiry = NULL, email = NULL
-    WHERE id = 1
-  `).run();
+export async function disconnectGmail(): Promise<void> {
+  await pool.query(
+    'UPDATE gmail_sync_state SET access_token = NULL, refresh_token = NULL, token_expiry = NULL, email = NULL WHERE id = 1'
+  );
 }
 
 export async function syncNewEmails(): Promise<number> {
-  const auth = getOAuth2Client();
+  const auth = await getOAuth2Client();
   const gmail = google.gmail({ version: 'v1', auth });
-  const state = getSyncState();
+  const state = await getSyncState();
   let newSubscriptionsFound = 0;
 
   try {
@@ -214,10 +205,10 @@ export async function syncNewEmails(): Promise<number> {
     const newHistoryId = profileRes.data.historyId ?? null;
 
     for (const msgId of messageIds) {
-      if (isGmailMessageAlreadyImported(msgId)) continue;
+      if (await isGmailMessageAlreadyImported(msgId)) continue;
       const parsed = await fetchAndParseMessage(gmail, msgId);
       if (parsed) {
-        createSubscription({
+        await createSubscription({
           ...parsed,
           status: 'pending',
           source: 'gmail',
@@ -228,12 +219,11 @@ export async function syncNewEmails(): Promise<number> {
     }
 
     // Update sync state
-    const db = getDb();
-    db.prepare(`
-      UPDATE gmail_sync_state
-      SET last_synced_at = datetime('now'), history_id = ?
-      WHERE id = 1
-    `).run(newHistoryId);
+    const NOW_EXPR = `to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`;
+    await pool.query(
+      `UPDATE gmail_sync_state SET last_synced_at = ${NOW_EXPR}, history_id = $1 WHERE id = 1`,
+      [newHistoryId]
+    );
 
     return newSubscriptionsFound;
   } catch (err) {
@@ -394,7 +384,7 @@ let pollingInterval: ReturnType<typeof setInterval> | null = null;
 export function startPolling(intervalMs = 15 * 60 * 1000): void {
   if (pollingInterval) return;
   pollingInterval = setInterval(async () => {
-    if (!isGmailConnected()) return;
+    if (!(await isGmailConnected())) return;
     console.log('[Gmail] Running scheduled sync...');
     try {
       const count = await syncNewEmails();

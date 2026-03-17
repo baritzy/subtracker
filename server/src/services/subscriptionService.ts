@@ -1,4 +1,4 @@
-import { getDb } from '../db/database';
+import { pool } from '../db/database';
 
 export interface Subscription {
   id: number;
@@ -20,7 +20,7 @@ export interface Subscription {
   plan_type_custom: string | null;
   currency: 'USD' | 'ILS';
   logo_url: string | null;
-  is_trial: number; // 0 | 1
+  is_trial: number;
   trial_end_date: string | null;
   created_at: string;
   updated_at: string;
@@ -65,105 +65,93 @@ export interface UpdateSubscriptionInput {
   trial_end_date?: string | null;
 }
 
-export function getAllSubscriptions(status?: string): Subscription[] {
-  const db = getDb();
+const NOW_EXPR = `to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`;
+
+export async function getAllSubscriptions(status?: string): Promise<Subscription[]> {
   if (status) {
-    return db.prepare('SELECT * FROM subscriptions WHERE status = ? ORDER BY renewal_date ASC').all(status) as Subscription[];
+    const { rows } = await pool.query(
+      'SELECT * FROM subscriptions WHERE status = $1 ORDER BY renewal_date ASC',
+      [status]
+    );
+    return rows;
   }
-  return db.prepare('SELECT * FROM subscriptions ORDER BY renewal_date ASC').all() as Subscription[];
+  const { rows } = await pool.query('SELECT * FROM subscriptions ORDER BY renewal_date ASC');
+  return rows;
 }
 
-export function getSubscriptionById(id: number): Subscription | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(id) as Subscription | undefined;
+export async function getSubscriptionById(id: number): Promise<Subscription | undefined> {
+  const { rows } = await pool.query('SELECT * FROM subscriptions WHERE id = $1', [id]);
+  return rows[0];
 }
 
-export function createSubscription(input: CreateSubscriptionInput): Subscription {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO subscriptions
+export async function createSubscription(input: CreateSubscriptionInput): Promise<Subscription> {
+  const { rows } = await pool.query(
+    `INSERT INTO subscriptions
       (company_name, service_name, cost, billing_cycle, cost_per_cycle, custom_cycle_months,
        renewal_date, start_date, cancel_url, status, source, gmail_message_id, notes,
        plan_type, plan_type_custom, currency, logo_url, is_trial, trial_end_date)
-    VALUES
-      (@company_name, @service_name, @cost, @billing_cycle, @cost_per_cycle, @custom_cycle_months,
-       @renewal_date, @start_date, @cancel_url, @status, @source, @gmail_message_id, @notes,
-       @plan_type, @plan_type_custom, @currency, @logo_url, @is_trial, @trial_end_date)
-  `);
-  const result = stmt.run({
-    company_name: input.company_name,
-    service_name: input.service_name,
-    cost: input.cost,
-    billing_cycle: input.billing_cycle,
-    cost_per_cycle: input.cost_per_cycle,
-    custom_cycle_months: input.custom_cycle_months ?? null,
-    renewal_date: input.renewal_date,
-    start_date: input.start_date ?? null,
-    cancel_url: input.cancel_url ?? null,
-    status: input.status ?? 'active',
-    source: input.source ?? 'manual',
-    gmail_message_id: input.gmail_message_id ?? null,
-    notes: input.notes ?? null,
-    plan_type: input.plan_type ?? 'personal',
-    plan_type_custom: input.plan_type_custom ?? null,
-    currency: input.currency ?? 'USD',
-    logo_url: input.logo_url ?? null,
-    is_trial: input.is_trial ? 1 : 0,
-    trial_end_date: input.trial_end_date ?? null,
-  });
-  return getSubscriptionById(result.lastInsertRowid as number)!;
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+     RETURNING id`,
+    [
+      input.company_name, input.service_name, input.cost, input.billing_cycle,
+      input.cost_per_cycle, input.custom_cycle_months ?? null, input.renewal_date,
+      input.start_date ?? null, input.cancel_url ?? null, input.status ?? 'active',
+      input.source ?? 'manual', input.gmail_message_id ?? null, input.notes ?? null,
+      input.plan_type ?? 'personal', input.plan_type_custom ?? null, input.currency ?? 'USD',
+      input.logo_url ?? null, input.is_trial ? 1 : 0, input.trial_end_date ?? null,
+    ]
+  );
+  return (await getSubscriptionById(rows[0].id))!;
 }
 
-export function updateSubscription(id: number, input: UpdateSubscriptionInput): Subscription | undefined {
-  const db = getDb();
+export async function updateSubscription(id: number, input: UpdateSubscriptionInput): Promise<Subscription | undefined> {
   const params: Record<string, unknown> = { ...input };
-  // Convert boolean is_trial to 0/1 for SQLite
-  if (typeof params.is_trial === 'boolean') {
-    params.is_trial = params.is_trial ? 1 : 0;
-  }
-  const fields = Object.keys(params)
-    .filter(k => params[k] !== undefined)
-    .map(k => `${k} = @${k}`)
-    .join(', ');
-  if (!fields) return getSubscriptionById(id);
-  db.prepare(`UPDATE subscriptions SET ${fields}, updated_at = datetime('now') WHERE id = @id`).run({ ...params, id });
+  if (typeof params.is_trial === 'boolean') params.is_trial = params.is_trial ? 1 : 0;
+
+  const keys = Object.keys(params).filter(k => params[k] !== undefined);
+  if (!keys.length) return getSubscriptionById(id);
+
+  const values: unknown[] = keys.map(k => params[k]);
+  const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+  values.push(id);
+
+  await pool.query(
+    `UPDATE subscriptions SET ${setClause}, updated_at = ${NOW_EXPR} WHERE id = $${values.length}`,
+    values
+  );
   return getSubscriptionById(id);
 }
 
-export function cancelSubscription(id: number): Subscription | undefined {
-  const db = getDb();
-  db.prepare(`
-    UPDATE subscriptions
-    SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now')
-    WHERE id = ?
-  `).run(id);
+export async function cancelSubscription(id: number): Promise<Subscription | undefined> {
+  await pool.query(
+    `UPDATE subscriptions SET status = 'cancelled', cancelled_at = ${NOW_EXPR}, updated_at = ${NOW_EXPR} WHERE id = $1`,
+    [id]
+  );
   return getSubscriptionById(id);
 }
 
-export function confirmPendingSubscription(id: number): Subscription | undefined {
-  const db = getDb();
-  db.prepare(`
-    UPDATE subscriptions
-    SET status = 'active', updated_at = datetime('now')
-    WHERE id = ? AND status = 'pending'
-  `).run(id);
+export async function confirmPendingSubscription(id: number): Promise<Subscription | undefined> {
+  await pool.query(
+    `UPDATE subscriptions SET status = 'active', updated_at = ${NOW_EXPR} WHERE id = $1 AND status = 'pending'`,
+    [id]
+  );
   return getSubscriptionById(id);
 }
 
-export function deleteSubscription(id: number): boolean {
-  const db = getDb();
-  const result = db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id);
-  return result.changes > 0;
+export async function deleteSubscription(id: number): Promise<boolean> {
+  const { rowCount } = await pool.query('DELETE FROM subscriptions WHERE id = $1', [id]);
+  return (rowCount ?? 0) > 0;
 }
 
-export function deleteAllSubscriptions(): number {
-  const db = getDb();
-  const result = db.prepare('DELETE FROM subscriptions').run();
-  return result.changes;
+export async function deleteAllSubscriptions(): Promise<number> {
+  const { rowCount } = await pool.query('DELETE FROM subscriptions');
+  return rowCount ?? 0;
 }
 
-export function isGmailMessageAlreadyImported(gmailMessageId: string): boolean {
-  const db = getDb();
-  const row = db.prepare('SELECT id FROM subscriptions WHERE gmail_message_id = ?').get(gmailMessageId);
-  return !!row;
+export async function isGmailMessageAlreadyImported(gmailMessageId: string): Promise<boolean> {
+  const { rows } = await pool.query(
+    'SELECT id FROM subscriptions WHERE gmail_message_id = $1',
+    [gmailMessageId]
+  );
+  return rows.length > 0;
 }

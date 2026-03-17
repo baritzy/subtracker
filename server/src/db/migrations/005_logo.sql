@@ -1,1 +1,1 @@
-ALTER TABLE subscriptions ADD COLUMN logo_url TEXT;
+-- Consolidated into 001_schema.sql

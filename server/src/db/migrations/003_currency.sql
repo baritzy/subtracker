@@ -1,2 +1,1 @@
-ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD'
-  CHECK(currency IN ('USD', 'ILS'));
+-- Consolidated into 001_schema.sql

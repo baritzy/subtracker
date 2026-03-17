@@ -1,1 +1,1 @@
-ALTER TABLE invoices ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD';
+-- Consolidated into 001_schema.sql

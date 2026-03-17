@@ -1,6 +1,5 @@
-import { getDb } from '../db/database';
 import { getAllSubscriptions, updateSubscription } from './subscriptionService';
-import { createInvoice } from './invoiceService';
+import { createInvoice, invoiceAlreadyExists } from './invoiceService';
 
 /**
  * Advances a date string by the subscription's billing cycle.
@@ -20,26 +19,14 @@ function nextRenewalDate(current: string, cycle: 'monthly' | 'yearly' | 'custom'
 }
 
 /**
- * Checks whether an invoice already exists for this subscription on this date,
- * to prevent duplicate entries if the job runs more than once.
- */
-function invoiceAlreadyExists(subscriptionId: number, date: string): boolean {
-  const db = getDb();
-  const row = db.prepare(
-    'SELECT id FROM invoices WHERE subscription_id = ? AND invoice_date = ?'
-  ).get(subscriptionId, date);
-  return !!row;
-}
-
-/**
  * Process all subscriptions whose renewal_date is today or in the past.
  * For each one:
  *  1. Create an invoice for the amount paid.
  *  2. Advance the renewal_date to the next cycle.
  */
-export function processRenewals(): void {
+export async function processRenewals(): Promise<void> {
   const today = new Date().toISOString().split('T')[0]; // e.g. "2026-03-16"
-  const active = getAllSubscriptions('active');
+  const active = await getAllSubscriptions('active');
 
   let processed = 0;
 
@@ -51,8 +38,8 @@ export function processRenewals(): void {
     let currentDate = sub.renewal_date;
 
     while (currentDate <= today) {
-      if (!invoiceAlreadyExists(sub.id, currentDate)) {
-        createInvoice({
+      if (!(await invoiceAlreadyExists(sub.id, currentDate))) {
+        await createInvoice({
           subscription_id: sub.id,
           amount: sub.cost_per_cycle,
           billing_cycle: sub.billing_cycle === 'custom' ? 'monthly' : sub.billing_cycle,
@@ -65,7 +52,7 @@ export function processRenewals(): void {
     }
 
     // Update the subscription's renewal_date to the next upcoming date
-    updateSubscription(sub.id, { renewal_date: currentDate });
+    await updateSubscription(sub.id, { renewal_date: currentDate });
     console.log(`[Renewal] "${sub.company_name}" next renewal → ${currentDate}`);
     processed++;
   }
@@ -80,7 +67,7 @@ export function processRenewals(): void {
  */
 export function startRenewalScheduler(): void {
   // Run immediately on startup to catch any renewals missed while server was off
-  processRenewals();
+  processRenewals().catch(err => console.error('[Renewal] Error:', err));
 
   // Calculate ms until next midnight
   function msUntilMidnight(): number {
@@ -92,8 +79,10 @@ export function startRenewalScheduler(): void {
 
   // First tick at next midnight, then every 24 h
   setTimeout(() => {
-    processRenewals();
-    setInterval(processRenewals, 24 * 60 * 60 * 1000);
+    processRenewals().catch(err => console.error('[Renewal] Error:', err));
+    setInterval(() => {
+      processRenewals().catch(err => console.error('[Renewal] Error:', err));
+    }, 24 * 60 * 60 * 1000);
   }, msUntilMidnight());
 
   console.log(`[Renewal] Scheduler started — next run at midnight (in ${Math.round(msUntilMidnight() / 60000)} min).`);
