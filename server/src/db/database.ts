@@ -1,6 +1,10 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import fs from 'fs';
 import path from 'path';
+
+// PostgreSQL returns NUMERIC/DECIMAL as strings by default — parse them as floats
+types.setTypeParser(1700, (val: string) => parseFloat(val)); // NUMERIC / DECIMAL
+types.setTypeParser(20,   (val: string) => parseInt(val, 10)); // INT8 / BIGINT
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
