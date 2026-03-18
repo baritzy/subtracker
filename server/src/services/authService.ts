@@ -28,6 +28,7 @@ export function getAuthUrl(): string {
     access_type: 'offline',
     scope: ['openid', 'profile', 'email'],
     prompt: 'consent',
+    state: 'user-auth',
   });
 }
 

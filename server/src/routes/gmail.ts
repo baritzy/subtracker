@@ -7,8 +7,10 @@ import {
   disconnectGmail,
   syncNewEmails,
 } from '../services/gmailService';
+import { handleAuthCallback } from '../services/authService';
 
 const router = Router();
+const APP_URL = process.env.APP_URL ?? 'https://subtracker-nm4n.onrender.com';
 
 // GET /api/gmail/auth  →  returns OAuth URL for frontend to redirect to
 router.get('/auth', (_req: Request, res: Response) => {
@@ -18,9 +20,32 @@ router.get('/auth', (_req: Request, res: Response) => {
   return res.json({ url: getAuthUrl() });
 });
 
-// GET /api/gmail/callback  →  exchange auth code for tokens, then return success page
+// GET /api/gmail/callback  →  handles both user-auth and Gmail-integration OAuth callbacks
 router.get('/callback', async (req: Request, res: Response) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+
+  // User login flow — state='user-auth' is set by authService.getAuthUrl()
+  if (state === 'user-auth') {
+    if (!code || typeof code !== 'string') {
+      return res.redirect(`${APP_URL}/?auth_error=1`);
+    }
+    try {
+      const token = await handleAuthCallback(code as string);
+      const dest = `${APP_URL}/?token=${encodeURIComponent(token)}`;
+      // Invisible instant redirect — no visible screen
+      return res.send(
+        `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
+        `<meta http-equiv="refresh" content="0;url=${dest}">` +
+        `<style>html,body{margin:0;background:#060b14}</style></head>` +
+        `<body><script>window.location.replace(${JSON.stringify(dest)})</script></body></html>`
+      );
+    } catch (err) {
+      console.error('Auth callback error:', err);
+      return res.redirect(`${APP_URL}/?auth_error=1`);
+    }
+  }
+
+  // Gmail integration flow (existing behavior)
   if (!code || typeof code !== 'string') {
     return res.status(400).send(callbackPage('שגיאה', 'קוד אימות חסר.', false));
   }
