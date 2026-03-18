@@ -75,9 +75,13 @@ input, select, textarea, button {
   }
 }
 
-/* Light theme (simple invert approach) */
+/* Light theme */
+html.theme-light {
+  background: #f0f4f8; /* html canvas background — visible if body doesn't fully cover */
+}
 body.theme-light {
   filter: invert(1) hue-rotate(180deg);
+  background: #060b14; /* keep dark so filter inverts it to light */
 }
 body.theme-light img {
   filter: invert(1) hue-rotate(180deg);

@@ -20,8 +20,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (theme === 'light') {
+      document.documentElement.classList.add('theme-light');
       document.body.classList.add('theme-light');
     } else {
+      document.documentElement.classList.remove('theme-light');
       document.body.classList.remove('theme-light');
     }
     localStorage.setItem('theme', theme);
