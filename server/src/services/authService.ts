@@ -22,13 +22,12 @@ function getOAuthClient() {
   );
 }
 
-export function getAuthUrl(mode: 'popup' | 'redirect' = 'popup'): string {
+export function getAuthUrl(): string {
   const client = getOAuthClient();
   return client.generateAuthUrl({
     access_type: 'offline',
     scope: ['openid', 'profile', 'email'],
     prompt: 'consent',
-    state: mode,
   });
 }
 

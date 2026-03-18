@@ -17,34 +17,27 @@ export function Login({ onLogin }: Props) {
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // Navigate to our own domain first — prevents Gmail app from intercepting
-        // the direct accounts.google.com URL on Android. Server redirects to Google.
-        window.location.href = '/api/auth/start?mode=redirect';
+        // Navigate via our server to avoid Gmail app intercepting Google's URL on Android
+        window.location.href = '/api/auth/start';
         return;
       }
 
-      const { url } = await api.auth.googleUrl('popup');
-
-      // Desktop: popup flow
+      // Desktop: open popup. Callback redirects to /?token=, popup stores token
+      // and closes itself. We detect completion via the storage event.
+      const { url } = await api.auth.googleUrl();
       const popup = window.open(url, 'google-auth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
-        window.location.href = '/api/auth/start?mode=redirect';
+        window.location.href = '/api/auth/start';
         return;
       }
 
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === 'auth-success' && e.data.token) {
-          window.removeEventListener('message', handler);
-          localStorage.setItem('auth_token', e.data.token);
-          popup.close();
+      const storageHandler = (e: StorageEvent) => {
+        if (e.key === 'auth_token' && e.newValue) {
+          window.removeEventListener('storage', storageHandler);
           onLogin();
-        } else if (e.data?.type === 'auth-error') {
-          window.removeEventListener('message', handler);
-          setError('ההתחברות נכשלה. נסה שוב.');
-          setLoading(false);
         }
       };
-      window.addEventListener('message', handler);
+      window.addEventListener('storage', storageHandler);
     } catch {
       setError('שגיאה בהתחברות. נסה שוב.');
       setLoading(false);

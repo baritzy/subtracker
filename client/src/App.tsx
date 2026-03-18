@@ -45,6 +45,12 @@ export default function App() {
     if (urlToken) {
       localStorage.setItem('auth_token', urlToken);
       window.history.replaceState({}, '', '/');
+      // If this tab was opened as a desktop popup, close it.
+      // The parent tab will detect the token via the 'storage' event.
+      if (window.opener) {
+        window.close();
+        return;
+      }
     }
     if (authError) {
       window.history.replaceState({}, '', '/');
