@@ -34,7 +34,7 @@ export default function App() {
 
   function openFab() { sessionStorage.setItem('fabOpen', 'true'); setFabOpen(true); }
   function closeFab() { sessionStorage.removeItem('fabOpen'); setFabOpen(false); }
-  const { subscriptions } = useSubscriptions();
+  const { subscriptions } = useSubscriptions(undefined, authState === 'logged-in');
   useNotifications(subscriptions);
 
   // Check auth on startup

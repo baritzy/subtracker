@@ -6,7 +6,7 @@ function sortByRenewal(subs: Subscription[]): Subscription[] {
   return [...subs].sort((a, b) => a.renewal_date.localeCompare(b.renewal_date));
 }
 
-export function useSubscriptions(status?: string) {
+export function useSubscriptions(status?: string, enabled = true) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function useSubscriptions(status?: string) {
     }
   }, [status]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => { if (enabled) void fetch(); }, [fetch, enabled]);
 
   const create = async (payload: CreateSubscriptionPayload) => {
     const sub = await api.subscriptions.create(payload);
