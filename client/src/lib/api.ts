@@ -66,6 +66,9 @@ export const api = {
 
     deleteAll: () =>
       request<void>('/subscriptions/all', { method: 'DELETE' }),
+
+    invoices: (id: number) =>
+      request<import('@/types').Invoice[]>(`/subscriptions/${id}/invoices`),
   },
 
   cancelUrl: (service: string) =>

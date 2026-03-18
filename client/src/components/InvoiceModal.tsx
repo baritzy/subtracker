@@ -5,6 +5,7 @@ import type { Invoice, Subscription } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { api } from '@/lib/api';
 
 interface Props {
   sub: Subscription;
@@ -16,9 +17,8 @@ export function InvoiceModal({ sub, onClose }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/subscriptions/${sub.id}/invoices`)
-      .then(r => r.json())
-      .then(data => { setInvoices(data); setLoading(false); })
+    api.subscriptions.invoices(sub.id)
+      .then(data => { setInvoices(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [sub.id]);
 
