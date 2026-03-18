@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import {
   getAllSubscriptions,
   getSubscriptionById,
@@ -12,25 +12,28 @@ import {
 import { getInvoicesForSubscription } from '../services/invoiceService';
 import { lookupCancelUrl } from '../services/cancelUrlService';
 import { lookupPlansUrl } from '../services/plansUrlService';
+import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+// All subscription routes require auth
+router.use(requireAuth);
+
 // GET /api/subscriptions?status=active|cancelled|pending
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   const { status } = req.query;
-  const subs = await getAllSubscriptions(status as string | undefined);
+  const subs = await getAllSubscriptions(req.userId!, status as string | undefined);
   res.json(subs);
 });
 
 // GET /api/subscriptions/logo-search?q=Anthropic  (must be before /:id)
-router.get('/logo-search', async (req: Request, res: Response) => {
+router.get('/logo-search', async (req: AuthRequest, res: Response) => {
   const q = (req.query.q as string ?? '').trim();
   if (!q) return res.json({ logo: null });
   try {
     const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(q)}`;
     const r = await fetch(url);
     const results = await r.json() as { name: string; domain: string; logo: string }[];
-    // Validate: domain must roughly match the query to avoid wrong logos
     const queryWords = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const match = results.find(r => {
       const d = r.domain.toLowerCase();
@@ -45,12 +48,10 @@ router.get('/logo-search', async (req: Request, res: Response) => {
 });
 
 // GET /api/subscriptions/cancel-url?service=CapCut  (must be before /:id)
-router.get('/cancel-url', async (req: Request, res: Response) => {
+router.get('/cancel-url', async (req: AuthRequest, res: Response) => {
   const service = (req.query.service as string) ?? '';
   const url = lookupCancelUrl(service);
   if (!url) return res.json({ url: null });
-
-  // Validate: HEAD request with 3s timeout — only discard on clear 404
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
@@ -62,83 +63,84 @@ router.get('/cancel-url', async (req: Request, res: Response) => {
     });
     clearTimeout(timeout);
     if (response.status === 404) return res.json({ url: null });
-  } catch {
-    // Timeout / network error / CORS — assume URL might still be valid
-  }
-
+  } catch { /* timeout / network — assume URL might still be valid */ }
   return res.json({ url });
 });
 
 // GET /api/subscriptions/plans-url?service=Netflix  (must be before /:id)
-router.get('/plans-url', (req: Request, res: Response) => {
+router.get('/plans-url', (req: AuthRequest, res: Response) => {
   const service = (req.query.service as string) ?? '';
   const url = lookupPlansUrl(service);
   return res.json({ url });
 });
 
-// DELETE /api/subscriptions/all  →  delete every subscription
-router.delete('/all', async (_req: Request, res: Response) => {
-  await deleteAllSubscriptions();
+// DELETE /api/subscriptions/all  →  delete every subscription for this user
+router.delete('/all', async (req: AuthRequest, res: Response) => {
+  await deleteAllSubscriptions(req.userId!);
   return res.status(204).send();
 });
 
 // GET /api/subscriptions/:id
-router.get('/:id', async (req: Request, res: Response) => {
-  const sub = await getSubscriptionById(Number(req.params.id));
+router.get('/:id', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   return res.json(sub);
 });
 
 // GET /api/subscriptions/:id/invoices
-router.get('/:id/invoices', async (req: Request, res: Response) => {
-  const sub = await getSubscriptionById(Number(req.params.id));
+router.get('/:id/invoices', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const invoices = await getInvoicesForSubscription(Number(req.params.id));
   return res.json(invoices);
 });
 
 // POST /api/subscriptions
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   const { company_name, service_name, cost, billing_cycle, cost_per_cycle, custom_cycle_months,
     renewal_date, start_date, cancel_url, notes, plan_type, plan_type_custom, currency, logo_url,
     is_trial, trial_end_date } = req.body;
   if (!company_name || !service_name || cost == null || !billing_cycle || cost_per_cycle == null || !renewal_date) {
-    return res.status(400).json({ error: 'Missing required fields: company_name, service_name, cost, billing_cycle, cost_per_cycle, renewal_date' });
+    return res.status(400).json({ error: 'Missing required fields' });
   }
-  const sub = await createSubscription({ company_name, service_name, cost, billing_cycle, cost_per_cycle,
-    custom_cycle_months, renewal_date, start_date, cancel_url, notes, plan_type, plan_type_custom, currency, logo_url,
-    is_trial: !!is_trial, trial_end_date });
+  const sub = await createSubscription({
+    company_name, service_name, cost, billing_cycle, cost_per_cycle,
+    custom_cycle_months, renewal_date, start_date, cancel_url, notes,
+    plan_type, plan_type_custom, currency, logo_url,
+    is_trial: !!is_trial, trial_end_date,
+  }, req.userId!);
   return res.status(201).json(sub);
 });
 
 // PUT /api/subscriptions/:id
-router.put('/:id', async (req: Request, res: Response) => {
-  const sub = await getSubscriptionById(Number(req.params.id));
+router.put('/:id', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const updated = await updateSubscription(Number(req.params.id), req.body);
   return res.json(updated);
 });
 
 // POST /api/subscriptions/:id/cancel
-router.post('/:id/cancel', async (req: Request, res: Response) => {
-  const sub = await getSubscriptionById(Number(req.params.id));
+router.post('/:id/cancel', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const updated = await cancelSubscription(Number(req.params.id));
   return res.json(updated);
 });
 
 // POST /api/subscriptions/:id/confirm
-router.post('/:id/confirm', async (req: Request, res: Response) => {
-  const sub = await getSubscriptionById(Number(req.params.id));
+router.post('/:id/confirm', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const updated = await confirmPendingSubscription(Number(req.params.id));
   return res.json(updated);
 });
 
 // DELETE /api/subscriptions/:id
-router.delete('/:id', async (req: Request, res: Response) => {
-  const deleted = await deleteSubscription(Number(req.params.id));
-  if (!deleted) return res.status(404).json({ error: 'Subscription not found' });
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
+  const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
+  if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+  await deleteSubscription(Number(req.params.id));
   return res.status(204).send();
 });
 

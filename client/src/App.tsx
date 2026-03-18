@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, ArrowLeft, Settings as SettingsIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from '@/pages/Dashboard';
@@ -6,8 +6,10 @@ import { History } from '@/pages/History';
 import { Settings } from '@/pages/Settings';
 import { Calendar } from '@/pages/Calendar';
 import { Trials } from '@/pages/Trials';
+import { Login } from '@/pages/Login';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useNotifications } from '@/hooks/useNotifications';
+import { api } from '@/lib/api';
 
 type Page = 'dashboard' | 'history' | 'settings' | 'calendar' | 'trials';
 
@@ -26,6 +28,7 @@ const pageVariants = {
 };
 
 export default function App() {
+  const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
   const [page, setPage] = useState<Page>('dashboard');
   const [fabOpen, setFabOpen] = useState(() => sessionStorage.getItem('fabOpen') === 'true');
 
@@ -34,20 +37,30 @@ export default function App() {
   const { subscriptions } = useSubscriptions();
   useNotifications(subscriptions);
 
-  const headerBtnStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '10px',
-    padding: '8px 12px',
-    cursor: 'pointer',
-    color: '#94a3b8',
-    fontSize: '13px',
-    fontWeight: 600,
-    fontFamily: "'Heebo', sans-serif",
-  };
+  // Check auth on startup
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) { setAuthState('logged-out'); return; }
+    api.auth.me()
+      .then(() => setAuthState('logged-in'))
+      .catch(() => { localStorage.removeItem('auth_token'); setAuthState('logged-out'); });
+  }, []);
+
+  if (authState === 'loading') {
+    return (
+      <div style={{
+        minHeight: '100dvh', background: '#060b14',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ width: '32px', height: '32px', border: '3px solid rgba(99,102,241,0.3)',
+          borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
+
+  if (authState === 'logged-out') {
+    return <Login onLogin={() => setAuthState('logged-in')} />;
+  }
 
   return (
     <div style={{
@@ -67,10 +80,8 @@ export default function App() {
         <div style={{
           maxWidth: '720px', margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: '16px',
-          height: '56px',
+          gap: '16px', height: '56px',
         }}>
-          {/* Logo / Back button */}
           {page !== 'dashboard' ? (
             <button
               onClick={() => setPage('dashboard')}
@@ -85,21 +96,15 @@ export default function App() {
             </button>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img
-                src="/icons/icon-192.png"
-                alt="SubTracker"
-                style={{ width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0 }}
-              />
-              <span style={{
-                fontFamily: "'Heebo', sans-serif", fontWeight: '800',
-                fontSize: '17px', color: '#f1f5f9', letterSpacing: '-0.3px',
-              }}>
+              <img src="/icons/icon-192.png" alt="SubTracker"
+                style={{ width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0 }} />
+              <span style={{ fontFamily: "'Heebo', sans-serif", fontWeight: '800',
+                fontSize: '17px', color: '#f1f5f9', letterSpacing: '-0.3px' }}>
                 SubTracker
               </span>
             </div>
           )}
 
-          {/* Right side: page title or settings button */}
           {page !== 'dashboard' ? (
             <span style={{ fontSize: '15px', fontWeight: '700', color: '#f1f5f9', fontFamily: "'Heebo', sans-serif" }}>
               {PAGE_TITLES[page]}
@@ -109,13 +114,8 @@ export default function App() {
               onClick={() => setPage('settings')}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '10px',
-                padding: '8px',
-                cursor: 'pointer',
-                color: '#94a3b8',
-                flexShrink: 0,
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px', padding: '8px', cursor: 'pointer', color: '#94a3b8', flexShrink: 0,
               }}
             >
               <SettingsIcon size={18} />
@@ -125,42 +125,35 @@ export default function App() {
       </header>
 
       {/* Page content */}
-      <main
-        className="page-content"
-        style={{
-          maxWidth: '720px', margin: '0 auto',
-          padding: '24px 20px',
-          paddingBottom: `calc(90px + env(safe-area-inset-bottom, 0px))`,
-        }}
-      >
+      <main className="page-content" style={{
+        maxWidth: '720px', margin: '0 auto',
+        padding: '24px 20px',
+        paddingBottom: `calc(90px + env(safe-area-inset-bottom, 0px))`,
+      }}>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={page}
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
+          <motion.div key={page} variants={pageVariants} initial="initial" animate="animate" exit="exit">
             {page === 'dashboard' && (
               <Dashboard onOpenAdd={openFab} fabOpen={fabOpen} onFabClose={closeFab} onNavigate={setPage} />
             )}
             {page === 'history' && <History />}
-            {page === 'settings' && <Settings onNavigate={setPage} />}
+            {page === 'settings' && <Settings onNavigate={setPage} onLogout={() => {
+              localStorage.removeItem('auth_token');
+              setAuthState('logged-out');
+            }} />}
             {page === 'calendar' && <Calendar />}
             {page === 'trials' && <Trials />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* FAB — Add subscription (dashboard only) */}
+      {/* FAB */}
       {page === 'dashboard' && (
         <button
           onClick={openFab}
           style={{
             position: 'fixed',
             bottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
-            insetInlineEnd: '20px',
-            zIndex: 50,
+            insetInlineEnd: '20px', zIndex: 50,
             width: '56px', height: '56px', borderRadius: '50%', border: 'none',
             background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
             color: '#fff', cursor: 'pointer',

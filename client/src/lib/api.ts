@@ -1,13 +1,26 @@
-import type { Subscription, CreateSubscriptionPayload, UpdateSubscriptionPayload, GmailStatus } from '@/types';
+import type { Subscription, CreateSubscriptionPayload, UpdateSubscriptionPayload } from '@/types';
 
 const BASE = '/api';
 
+function getToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
   if (!res.ok) {
+    if (res.status === 401) {
+      // Token expired or invalid — clear and reload
+      localStorage.removeItem('auth_token');
+      window.location.reload();
+    }
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? 'Request failed');
   }
@@ -15,8 +28,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// Subscriptions
 export const api = {
+  auth: {
+    googleUrl: () =>
+      request<{ url: string }>('/auth/google'),
+
+    me: () =>
+      request<{ id: number; email: string; name: string | null; is_premium: boolean }>('/auth/me'),
+  },
+
   subscriptions: {
     list: (status?: string) =>
       request<Subscription[]>(`/subscriptions${status ? `?status=${status}` : ''}`),
@@ -54,18 +74,4 @@ export const api = {
 
   logoSearch: (q: string) =>
     request<{ logo: string | null; domain: string | null }>(`/subscriptions/logo-search?q=${encodeURIComponent(q)}`),
-
-  gmail: {
-    status: () =>
-      request<GmailStatus>('/gmail/status'),
-
-    authUrl: () =>
-      request<{ url: string }>('/gmail/auth'),
-
-    sync: () =>
-      request<{ new_subscriptions_found: number }>('/gmail/sync', { method: 'POST' }),
-
-    disconnect: () =>
-      request<void>('/gmail/disconnect', { method: 'POST' }),
-  },
 };

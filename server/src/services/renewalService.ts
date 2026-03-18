@@ -1,4 +1,4 @@
-import { getAllSubscriptions, updateSubscription } from './subscriptionService';
+import { getAllActiveSubscriptionsAllUsers, updateSubscription } from './subscriptionService';
 import { createInvoice, invoiceAlreadyExists } from './invoiceService';
 
 /**
@@ -26,7 +26,7 @@ function nextRenewalDate(current: string, cycle: 'monthly' | 'yearly' | 'custom'
  */
 export async function processRenewals(): Promise<void> {
   const today = new Date().toISOString().split('T')[0]; // e.g. "2026-03-16"
-  const active = await getAllSubscriptions('active');
+  const active = await getAllActiveSubscriptionsAllUsers();
 
   let processed = 0;
 

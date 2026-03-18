@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import subscriptionsRouter from './routes/subscriptions';
 import gmailRouter from './routes/gmail';
+import authRouter from './routes/auth';
 import { initDb } from './db/database';
 import { startPolling, isGmailConnected } from './services/gmailService';
 import { startRenewalScheduler } from './services/renewalService';
@@ -15,6 +16,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5173' }));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/gmail', gmailRouter);
 

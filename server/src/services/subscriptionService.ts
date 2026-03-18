@@ -67,30 +67,37 @@ export interface UpdateSubscriptionInput {
 
 const NOW_EXPR = `to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`;
 
-export async function getAllSubscriptions(status?: string): Promise<Subscription[]> {
+export async function getAllSubscriptions(userId: number, status?: string): Promise<Subscription[]> {
   if (status) {
     const { rows } = await pool.query(
-      'SELECT * FROM subscriptions WHERE status = $1 ORDER BY renewal_date ASC',
-      [status]
+      'SELECT * FROM subscriptions WHERE user_id = $1 AND status = $2 ORDER BY renewal_date ASC',
+      [userId, status]
     );
     return rows;
   }
-  const { rows } = await pool.query('SELECT * FROM subscriptions ORDER BY renewal_date ASC');
+  const { rows } = await pool.query(
+    'SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY renewal_date ASC',
+    [userId]
+  );
   return rows;
 }
 
-export async function getSubscriptionById(id: number): Promise<Subscription | undefined> {
+export async function getSubscriptionById(id: number, userId?: number): Promise<Subscription | undefined> {
+  if (userId !== undefined) {
+    const { rows } = await pool.query('SELECT * FROM subscriptions WHERE id = $1 AND user_id = $2', [id, userId]);
+    return rows[0];
+  }
   const { rows } = await pool.query('SELECT * FROM subscriptions WHERE id = $1', [id]);
   return rows[0];
 }
 
-export async function createSubscription(input: CreateSubscriptionInput): Promise<Subscription> {
+export async function createSubscription(input: CreateSubscriptionInput, userId?: number): Promise<Subscription> {
   const { rows } = await pool.query(
     `INSERT INTO subscriptions
       (company_name, service_name, cost, billing_cycle, cost_per_cycle, custom_cycle_months,
        renewal_date, start_date, cancel_url, status, source, gmail_message_id, notes,
-       plan_type, plan_type_custom, currency, logo_url, is_trial, trial_end_date)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       plan_type, plan_type_custom, currency, logo_url, is_trial, trial_end_date, user_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
      RETURNING id`,
     [
       input.company_name, input.service_name, input.cost, input.billing_cycle,
@@ -99,6 +106,7 @@ export async function createSubscription(input: CreateSubscriptionInput): Promis
       input.source ?? 'manual', input.gmail_message_id ?? null, input.notes ?? null,
       input.plan_type ?? 'personal', input.plan_type_custom ?? null, input.currency ?? 'USD',
       input.logo_url ?? null, input.is_trial ? 1 : 0, input.trial_end_date ?? null,
+      userId ?? null,
     ]
   );
   return (await getSubscriptionById(rows[0].id))!;
@@ -143,9 +151,21 @@ export async function deleteSubscription(id: number): Promise<boolean> {
   return (rowCount ?? 0) > 0;
 }
 
-export async function deleteAllSubscriptions(): Promise<number> {
+export async function deleteAllSubscriptions(userId?: number): Promise<number> {
+  if (userId !== undefined) {
+    const { rowCount } = await pool.query('DELETE FROM subscriptions WHERE user_id = $1', [userId]);
+    return rowCount ?? 0;
+  }
   const { rowCount } = await pool.query('DELETE FROM subscriptions');
   return rowCount ?? 0;
+}
+
+// For internal server use (renewals scheduler) — no user filter
+export async function getAllActiveSubscriptionsAllUsers(): Promise<Subscription[]> {
+  const { rows } = await pool.query(
+    "SELECT * FROM subscriptions WHERE status = 'active' ORDER BY renewal_date ASC"
+  );
+  return rows;
 }
 
 export async function isGmailMessageAlreadyImported(gmailMessageId: string): Promise<boolean> {
