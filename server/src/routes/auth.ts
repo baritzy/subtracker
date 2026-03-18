@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getAuthUrl, handleAuthCallback, getUserById } from '../services/authService';
+import { getAuthUrl, handleAuthCallback, getUserById, createAnonymousUser } from '../services/authService';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -27,6 +27,17 @@ router.get('/callback', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/auth/anonymous  →  create guest user, return JWT
+router.post('/anonymous', async (_req: Request, res: Response) => {
+  try {
+    const token = await createAnonymousUser();
+    return res.json({ token });
+  } catch (err) {
+    console.error('Anonymous auth error:', err);
+    return res.status(500).json({ error: 'Failed to create guest session' });
+  }
+});
+
 // GET /api/auth/me  →  return current user info
 router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   const user = await getUserById(req.userId!);
@@ -38,10 +49,19 @@ function callbackPage(title: string, body: string, token: string | null): string
   const success = !!token;
   const color = success ? '#22c55e' : '#ef4444';
   const icon = success ? '✓' : '✗';
+  const appOrigin = process.env.APP_URL ?? 'https://subtracker-nm4n.onrender.com';
   const script = token
-    ? `try { window.opener && window.opener.postMessage({ type: 'auth-success', token: '${token}' }, '*'); } catch(e){}
-       if (window.opener) { setTimeout(function(){ try { window.close(); } catch(e){} }, 1000); }`
-    : `try { window.opener && window.opener.postMessage({ type: 'auth-error' }, '*'); } catch(e){}`;
+    ? `if (window.opener) {
+         try { window.opener.postMessage({ type: 'auth-success', token: '${token}' }, '*'); } catch(e){}
+         setTimeout(function(){ try { window.close(); } catch(e){} }, 1000);
+       } else {
+         window.location.href = '${appOrigin}/?token=${token}';
+       }`
+    : `if (window.opener) {
+         try { window.opener.postMessage({ type: 'auth-error' }, '*'); } catch(e){}
+       } else {
+         window.location.href = '${appOrigin}/?auth_error=1';
+       }`;
 
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">

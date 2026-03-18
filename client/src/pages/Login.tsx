@@ -7,6 +7,7 @@ interface Props {
 
 export function Login({ onLogin }: Props) {
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleGoogleSignIn() {
@@ -37,6 +38,25 @@ export function Login({ onLogin }: Props) {
     } catch {
       setError('שגיאה בהתחברות. נסה שוב.');
       setLoading(false);
+    }
+  }
+
+  async function handleContinueAsGuest() {
+    setGuestLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/anonymous', { method: 'POST' });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+        onLogin();
+      } else {
+        setError('שגיאה בהתחברות. נסה שוב.');
+      }
+    } catch {
+      setError('שגיאה בהתחברות. נסה שוב.');
+    } finally {
+      setGuestLoading(false);
     }
   }
 
@@ -131,6 +151,28 @@ export function Login({ onLogin }: Props) {
         <p style={{ fontSize: '12px', color: '#334155', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
           אנחנו שומרים רק את האימייל ושם שלך. לא קוראים מיילים.
         </p>
+
+        <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+
+        <button
+          onClick={handleContinueAsGuest}
+          disabled={guestLoading || loading}
+          style={{
+            width: '100%',
+            padding: '12px 24px',
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '14px',
+            cursor: (guestLoading || loading) ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#475569',
+            fontFamily: "'Heebo', sans-serif",
+            transition: 'color 0.15s',
+          }}
+        >
+          {guestLoading ? 'מתחבר...' : 'המשך ללא גיבוי נתונים'}
+        </button>
       </div>
     </div>
   );

@@ -37,9 +37,15 @@ export default function App() {
   const { subscriptions } = useSubscriptions();
   useNotifications(subscriptions);
 
-  // Check auth on startup
+  // Check auth on startup (also handles ?token= redirect from mobile OAuth)
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      localStorage.setItem('auth_token', urlToken);
+      window.history.replaceState({}, '', '/');
+    }
+    const token = urlToken ?? localStorage.getItem('auth_token');
     if (!token) { setAuthState('logged-out'); return; }
     api.auth.me()
       .then(() => setAuthState('logged-in'))

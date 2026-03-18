@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { pool } from '../db/database';
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'subtracker-dev-secret-change-in-production';
@@ -61,6 +62,16 @@ export async function handleAuthCallback(code: string): Promise<string> {
   );
 
   return token;
+}
+
+export async function createAnonymousUser(): Promise<string> {
+  const anonId = `anon_${randomUUID()}`;
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO users (google_id, email, name) VALUES ($1, $2, $3) RETURNING id`,
+    [anonId, `${anonId}@anon.local`, 'משתמש אורח']
+  );
+  const userId = rows[0].id;
+  return jwt.sign({ userId, googleId: anonId, email: '' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyToken(token: string): { userId: number; email: string } | null {
