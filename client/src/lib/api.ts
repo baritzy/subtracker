@@ -17,9 +17,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     if (res.status === 401) {
-      // Token expired or invalid — clear and reload
-      localStorage.removeItem('auth_token');
-      window.location.reload();
+      // Only reload if a token existed (session expired). If no token, just throw.
+      if (localStorage.getItem('auth_token')) {
+        localStorage.removeItem('auth_token');
+        window.location.reload();
+      }
     }
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? 'Request failed');
