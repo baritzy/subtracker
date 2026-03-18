@@ -156,8 +156,18 @@ export default function App() {
               <Dashboard onOpenAdd={openFab} fabOpen={fabOpen} onFabClose={closeFab} onNavigate={setPage} />
             )}
             {page === 'history' && <History />}
-            {page === 'settings' && <Settings onNavigate={setPage} onLogout={() => {
+            {page === 'settings' && <Settings onNavigate={setPage} onLogout={async () => {
               localStorage.removeItem('auth_token');
+              // After logout, create a guest session so user stays in the app
+              try {
+                const res = await fetch('/api/auth/anonymous', { method: 'POST' });
+                const data = await res.json();
+                if (data.token) {
+                  localStorage.setItem('auth_token', data.token);
+                  setPage('dashboard');
+                  return;
+                }
+              } catch {}
               setAuthState('logged-out');
             }} />}
             {page === 'calendar' && <Calendar />}

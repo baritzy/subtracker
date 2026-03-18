@@ -63,8 +63,12 @@ function callbackPage(token: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="2;url=${APP_URL}/">
   <style>
-    html, body { margin: 0; padding: 0; background: #060b14; min-height: 100vh; }
+    html, body { margin: 0; padding: 0; background: #060b14; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Heebo', sans-serif; color: #94a3b8; font-size: 15px; }
+    a { color: #818cf8; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -78,6 +82,7 @@ function callbackPage(token: string): string {
     window.location.replace('${APP_URL}/');
   }
 </script>
+<a href="${APP_URL}/">חזרה לאפליקציה &rarr;</a>
 </body>
 </html>`;
 }
