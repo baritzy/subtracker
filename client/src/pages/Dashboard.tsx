@@ -5,6 +5,7 @@ import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { SubscriptionForm } from '@/components/SubscriptionForm';
 import { CostSummary } from '@/components/CostSummary';
 import { RenewalTimeline } from '@/components/RenewalTimeline';
+import { PendingReviewPanel } from '@/components/PendingReviewPanel';
 import type { Subscription, CreateSubscriptionPayload } from '@/types';
 
 interface Props {
@@ -15,11 +16,13 @@ interface Props {
 }
 
 export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
-  const { subscriptions, loading, error, create, update, cancel } = useSubscriptions();
+  const { subscriptions, loading, error, create, update, cancel, confirm, dismiss } = useSubscriptions();
 
   const [editTarget, setEditTarget] = useState<Subscription | null>(null);
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'personal' | 'family'>('all');
+
+  const pending = subscriptions.filter(s => s.status === 'pending');
 
   const active = subscriptions.filter(s => {
     if (s.status !== 'active') return false;
@@ -101,6 +104,9 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
           <FlaskConical size={14} /> Trials
         </button>
       </div>
+
+      {/* Pending Gmail subscriptions */}
+      <PendingReviewPanel pending={pending} onConfirm={confirm} onDismiss={dismiss} />
 
       {/* Stats */}
       <CostSummary subscriptions={subscriptions} planFilter={planFilter} onPlanFilter={setPlanFilter} />
