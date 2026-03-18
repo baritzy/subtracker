@@ -105,7 +105,20 @@ function TestNotificationButton() {
     let permission = Notification.permission;
     if (permission === 'default') permission = await Notification.requestPermission();
     if (permission !== 'granted') { setStatus('denied'); return; }
-    new Notification('SubTracker — בדיקה', { body: 'ההתראות עובדות! Netflix מתחדש מחר.', icon: '/icons/icon-192.png' });
+
+    try {
+      // Use SW showNotification — works on all platforms including Android
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification('SubTracker — בדיקה ✓', {
+        body: 'ההתראות עובדות! Netflix מתחדש מחר.',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'test-notification',
+      });
+    } catch {
+      // Fallback for desktop browsers without SW
+      new Notification('SubTracker — בדיקה ✓', { body: 'ההתראות עובדות! Netflix מתחדש מחר.', icon: '/icons/icon-192.png' });
+    }
     setStatus('sent');
     setTimeout(() => setStatus('idle'), 3000);
   }
@@ -127,8 +140,11 @@ function TestNotificationButton() {
       )}
       {status === 'denied' && (
         <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '6px' }}>הרשאות התראות חסומות</div>
-          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.7, direction: 'ltr', textAlign: 'left' }}>{getPermissionInstructions()}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '6px' }}>הרשאות התראות חסומות לאתר זה</div>
+          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.7 }}>{getPermissionInstructions()}</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+            לאחר שינוי ההגדרות — רענן את הדף ונסה שוב
+          </div>
         </div>
       )}
       {status === 'unsupported' && (
