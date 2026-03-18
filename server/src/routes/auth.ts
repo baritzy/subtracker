@@ -6,6 +6,16 @@ const router = Router();
 
 const APP_URL = process.env.APP_URL ?? 'https://subtracker-nm4n.onrender.com';
 
+// GET /api/auth/start?mode=popup|redirect  →  server-side redirect to Google
+// Used by mobile to avoid Gmail app intercepting direct navigation to accounts.google.com
+router.get('/start', (req: Request, res: Response) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).send('Google auth not configured');
+  }
+  const mode = req.query.mode === 'redirect' ? 'redirect' : 'popup';
+  return res.redirect(getAuthUrl(mode));
+});
+
 // GET /api/auth/google?mode=popup|redirect  →  redirect URL for frontend
 router.get('/google', (req: Request, res: Response) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {

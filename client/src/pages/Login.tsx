@@ -14,23 +14,21 @@ export function Login({ onLogin }: Props) {
     setLoading(true);
     setError(null);
     try {
-      // On mobile: server does HTTP redirect back to /?token= (reliable, no JS tricks)
-      // On desktop: popup with postMessage
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const mode = isMobile ? 'redirect' : 'popup';
-      const { url } = await api.auth.googleUrl(mode);
 
       if (isMobile) {
-        window.location.href = url;
+        // Navigate to our own domain first — prevents Gmail app from intercepting
+        // the direct accounts.google.com URL on Android. Server redirects to Google.
+        window.location.href = '/api/auth/start?mode=redirect';
         return;
       }
+
+      const { url } = await api.auth.googleUrl('popup');
 
       // Desktop: popup flow
       const popup = window.open(url, 'google-auth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
-        // Popup blocked — fall back to redirect
-        const { url: redirectUrl } = await api.auth.googleUrl('redirect');
-        window.location.href = redirectUrl;
+        window.location.href = '/api/auth/start?mode=redirect';
         return;
       }
 
