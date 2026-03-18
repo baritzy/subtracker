@@ -37,38 +37,27 @@ export default function App() {
   const { subscriptions } = useSubscriptions();
   useNotifications(subscriptions);
 
-  // Check auth on startup (also handles ?token= redirect from mobile OAuth)
+  // Check auth on startup
   useEffect(() => {
+    // Handle auth_error from failed OAuth
     const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    const authError = params.get('auth_error');
-    if (urlToken) {
-      localStorage.setItem('auth_token', urlToken);
-      window.history.replaceState({}, '', '/');
-      // If this tab was opened as a desktop popup, close it.
-      // The parent tab will detect the token via the 'storage' event.
-      if (window.opener) {
-        window.close();
-        return;
-      }
-    }
-    if (authError) {
+    if (params.get('auth_error')) {
       window.history.replaceState({}, '', '/');
       setAuthState('logged-out');
       return;
     }
-    const token = urlToken ?? localStorage.getItem('auth_token');
+
+    const token = localStorage.getItem('auth_token');
     if (!token) { setAuthState('logged-out'); return; }
 
-    // Timeout: if server is cold-starting, don't hang on black screen forever
+    // Timeout: if server is cold-starting, let user in optimistically after 12s
     const timeout = setTimeout(() => setAuthState('logged-in'), 12000);
 
     api.auth.me()
       .then(() => { clearTimeout(timeout); setAuthState('logged-in'); })
       .catch(() => {
         clearTimeout(timeout);
-        // If token was removed by api.ts (401), go to logged-out
-        // If token still exists (network error / cold start), let user in optimistically
+        // 401: token removed by api.ts → logged-out. Network error: token still there → optimistic login
         if (!localStorage.getItem('auth_token')) {
           setAuthState('logged-out');
         } else {
