@@ -15,13 +15,28 @@ export function Login({ onLogin }: Props) {
     setError(null);
     try {
       const { url } = await api.auth.googleUrl();
+
+      // On mobile, window.open creates a new tab — postMessage never reaches the original tab.
+      // Use full-page redirect instead; App.tsx will read ?token= on return.
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = url;
+        return;
+      }
+
+      // Desktop: popup flow
       const popup = window.open(url, 'google-auth', 'width=500,height=600,scrollbars=yes');
+      if (!popup) {
+        // Popup blocked — fall back to redirect
+        window.location.href = url;
+        return;
+      }
 
       const handler = (e: MessageEvent) => {
         if (e.data?.type === 'auth-success' && e.data.token) {
           window.removeEventListener('message', handler);
           localStorage.setItem('auth_token', e.data.token);
-          popup?.close();
+          popup.close();
           onLogin();
         } else if (e.data?.type === 'auth-error') {
           window.removeEventListener('message', handler);
@@ -30,11 +45,6 @@ export function Login({ onLogin }: Props) {
         }
       };
       window.addEventListener('message', handler);
-
-      // Fallback: if popup was blocked
-      if (!popup) {
-        window.location.href = url;
-      }
     } catch {
       setError('שגיאה בהתחברות. נסה שוב.');
       setLoading(false);

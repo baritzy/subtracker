@@ -41,15 +41,34 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
+    const authError = params.get('auth_error');
     if (urlToken) {
       localStorage.setItem('auth_token', urlToken);
       window.history.replaceState({}, '', '/');
     }
+    if (authError) {
+      window.history.replaceState({}, '', '/');
+      setAuthState('logged-out');
+      return;
+    }
     const token = urlToken ?? localStorage.getItem('auth_token');
     if (!token) { setAuthState('logged-out'); return; }
+
+    // Timeout: if server is cold-starting, don't hang on black screen forever
+    const timeout = setTimeout(() => setAuthState('logged-in'), 12000);
+
     api.auth.me()
-      .then(() => setAuthState('logged-in'))
-      .catch(() => { localStorage.removeItem('auth_token'); setAuthState('logged-out'); });
+      .then(() => { clearTimeout(timeout); setAuthState('logged-in'); })
+      .catch(() => {
+        clearTimeout(timeout);
+        // If token was removed by api.ts (401), go to logged-out
+        // If token still exists (network error / cold start), let user in optimistically
+        if (!localStorage.getItem('auth_token')) {
+          setAuthState('logged-out');
+        } else {
+          setAuthState('logged-in');
+        }
+      });
   }, []);
 
   if (authState === 'loading') {
