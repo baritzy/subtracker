@@ -1,4 +1,4 @@
-const CACHE = 'sub-tracker-v1';
+const CACHE = 'sub-tracker-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -21,6 +21,15 @@ self.addEventListener('fetch', e => {
   // Don't cache API calls
   if (e.request.url.includes('/api/')) return;
 
+  // Navigation requests (HTML pages): always network-first so new deploys load immediately
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images): cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       const network = fetch(e.request).then(res => {

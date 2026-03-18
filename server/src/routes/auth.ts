@@ -22,7 +22,7 @@ router.get('/google', (_req: Request, res: Response) => {
   return res.json({ url: getAuthUrl() });
 });
 
-// GET /api/auth/callback  →  exchange code, store token via JS (no HTTP redirect dependency)
+// GET /api/auth/callback  →  exchange code, redirect to app with token in URL
 router.get('/callback', async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code || typeof code !== 'string') {
@@ -30,7 +30,7 @@ router.get('/callback', async (req: Request, res: Response) => {
   }
   try {
     const token = await handleAuthCallback(code);
-    return res.send(callbackPage(token));
+    return res.redirect(`${APP_URL}/?token=${token}`);
   } catch (err) {
     console.error('Auth callback error:', err);
     return res.redirect(`${APP_URL}/?auth_error=1`);
@@ -54,37 +54,5 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   return res.json(user);
 });
-
-// Stores the token directly in localStorage via JS, then navigates to the app.
-// This avoids relying on HTTP redirects being followed after Android OAuth flows.
-function callbackPage(token: string): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="2;url=${APP_URL}/">
-  <style>
-    html, body { margin: 0; padding: 0; background: #060b14; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Heebo', sans-serif; color: #94a3b8; font-size: 15px; }
-    a { color: #818cf8; text-decoration: none; }
-  </style>
-</head>
-<body>
-<script>
-  try { localStorage.setItem('auth_token', '${token}'); } catch(e) {}
-  if (window.opener) {
-    // Desktop popup: parent tab will detect token via storage event
-    try { window.close(); } catch(e) {}
-  } else {
-    // Mobile same-tab flow: navigate to app
-    window.location.replace('${APP_URL}/');
-  }
-</script>
-<a href="${APP_URL}/">חזרה לאפליקציה &rarr;</a>
-</body>
-</html>`;
-}
 
 export default router;

@@ -39,12 +39,22 @@ export default function App() {
 
   // Check auth on startup
   useEffect(() => {
-    // Handle auth_error from failed OAuth
     const params = new URLSearchParams(window.location.search);
+
+    // Handle auth_error from failed OAuth
     if (params.get('auth_error')) {
       window.history.replaceState({}, '', '/');
       setAuthState('logged-out');
       return;
+    }
+
+    // Token delivered via redirect from OAuth callback (?token=...)
+    const urlToken = params.get('token');
+    if (urlToken) {
+      localStorage.setItem('auth_token', urlToken);
+      window.history.replaceState({}, '', '/');
+      // Desktop popup: close this window so the opener tab takes over
+      if (window.opener) { window.close(); return; }
     }
 
     const token = localStorage.getItem('auth_token');
