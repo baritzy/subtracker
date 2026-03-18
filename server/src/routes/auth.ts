@@ -4,25 +4,36 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// GET /api/auth/google  →  redirect URL for frontend
-router.get('/google', (_req: Request, res: Response) => {
+const APP_URL = process.env.APP_URL ?? 'https://subtracker-nm4n.onrender.com';
+
+// GET /api/auth/google?mode=popup|redirect  →  redirect URL for frontend
+router.get('/google', (req: Request, res: Response) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(503).json({ error: 'Google auth not configured' });
   }
-  return res.json({ url: getAuthUrl() });
+  const mode = req.query.mode === 'redirect' ? 'redirect' : 'popup';
+  return res.json({ url: getAuthUrl(mode) });
 });
 
 // GET /api/auth/callback  →  exchange code for JWT, return to frontend
 router.get('/callback', async (req: Request, res: Response) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  const mode = state === 'redirect' ? 'redirect' : 'popup';
+
   if (!code || typeof code !== 'string') {
+    if (mode === 'redirect') return res.redirect(`${APP_URL}/?auth_error=1`);
     return res.status(400).send(callbackPage('שגיאה', 'קוד אימות חסר.', null));
   }
   try {
     const token = await handleAuthCallback(code);
+    // Mobile (redirect mode): HTTP redirect directly to the app — no JS needed
+    if (mode === 'redirect') {
+      return res.redirect(`${APP_URL}/?token=${token}`);
+    }
     return res.send(callbackPage('התחברת בהצלחה!', 'אפשר לסגור חלון זה.', token));
   } catch (err) {
     console.error('Auth callback error:', err);
+    if (mode === 'redirect') return res.redirect(`${APP_URL}/?auth_error=1`);
     return res.status(500).send(callbackPage('שגיאה', 'ההתחברות נכשלה. נסה שוב.', null));
   }
 });
@@ -45,23 +56,15 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   return res.json(user);
 });
 
+// callbackPage is only used for desktop popup mode
 function callbackPage(title: string, body: string, token: string | null): string {
   const success = !!token;
   const color = success ? '#22c55e' : '#ef4444';
   const icon = success ? '✓' : '✗';
-  const appOrigin = process.env.APP_URL ?? 'https://subtracker-nm4n.onrender.com';
   const script = token
-    ? `if (window.opener) {
-         try { window.opener.postMessage({ type: 'auth-success', token: '${token}' }, '*'); } catch(e){}
-         setTimeout(function(){ try { window.close(); } catch(e){} }, 1000);
-       } else {
-         window.location.href = '${appOrigin}/?token=${token}';
-       }`
-    : `if (window.opener) {
-         try { window.opener.postMessage({ type: 'auth-error' }, '*'); } catch(e){}
-       } else {
-         window.location.href = '${appOrigin}/?auth_error=1';
-       }`;
+    ? `try { window.opener && window.opener.postMessage({ type: 'auth-success', token: '${token}' }, '*'); } catch(e){}
+       setTimeout(function(){ try { window.close(); } catch(e){} }, 1000);`
+    : `try { window.opener && window.opener.postMessage({ type: 'auth-error' }, '*'); } catch(e){}`;
 
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">

@@ -14,11 +14,12 @@ export function Login({ onLogin }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const { url } = await api.auth.googleUrl();
-
-      // On mobile, window.open creates a new tab — postMessage never reaches the original tab.
-      // Use full-page redirect instead; App.tsx will read ?token= on return.
+      // On mobile: server does HTTP redirect back to /?token= (reliable, no JS tricks)
+      // On desktop: popup with postMessage
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const mode = isMobile ? 'redirect' : 'popup';
+      const { url } = await api.auth.googleUrl(mode);
+
       if (isMobile) {
         window.location.href = url;
         return;
@@ -28,7 +29,8 @@ export function Login({ onLogin }: Props) {
       const popup = window.open(url, 'google-auth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
         // Popup blocked — fall back to redirect
-        window.location.href = url;
+        const { url: redirectUrl } = await api.auth.googleUrl('redirect');
+        window.location.href = redirectUrl;
         return;
       }
 

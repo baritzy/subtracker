@@ -32,8 +32,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   auth: {
-    googleUrl: () =>
-      request<{ url: string }>('/auth/google'),
+    googleUrl: (mode: 'popup' | 'redirect' = 'popup') =>
+      request<{ url: string }>(`/auth/google?mode=${mode}`),
 
     me: () =>
       request<{ id: number; email: string; name: string | null; is_premium: boolean }>('/auth/me'),
