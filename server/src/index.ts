@@ -27,7 +27,12 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
   app.use(express.static(clientDist));
-  app.get('*', (_req, res) => {
+  app.get('*', (req, res) => {
+    // Don't serve index.html for asset requests — return 404 so the browser
+    // shows a clear error instead of a MIME-type mismatch when SW serves stale HTML
+    if (req.path.startsWith('/assets/') || req.path.startsWith('/icons/')) {
+      return res.status(404).send('Not found');
+    }
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 }
