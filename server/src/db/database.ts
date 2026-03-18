@@ -5,6 +5,8 @@ import path from 'path';
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
 });
 
 export async function initDb(): Promise<void> {
@@ -13,7 +15,10 @@ export async function initDb(): Promise<void> {
 }
 
 async function runMigrations(): Promise<void> {
-  const migrationsDir = path.join(__dirname, 'migrations');
+  // Try dist/db/migrations first, then fall back to src/db/migrations (works on Render)
+  const distMigrations = path.join(__dirname, 'migrations');
+  const srcMigrations = path.join(__dirname, '../../src/db/migrations');
+  const migrationsDir = fs.existsSync(distMigrations) ? distMigrations : srcMigrations;
   const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
   for (const file of files) {
