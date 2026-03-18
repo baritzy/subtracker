@@ -22,7 +22,9 @@ router.get('/google', (_req: Request, res: Response) => {
   return res.json({ url: getAuthUrl() });
 });
 
-// GET /api/auth/callback  →  exchange code, redirect to app with token in URL
+// GET /api/auth/callback  →  exchange code, deliver token to the app
+// We use an invisible HTML page (not HTTP 302) because Android Chrome sometimes
+// doesn't follow server-side redirects from OAuth callbacks reliably.
 router.get('/callback', async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code || typeof code !== 'string') {
@@ -30,7 +32,8 @@ router.get('/callback', async (req: Request, res: Response) => {
   }
   try {
     const token = await handleAuthCallback(code);
-    return res.redirect(`${APP_URL}/?token=${token}`);
+    // Instant invisible redirect — no visible screen, just JS + meta refresh
+    return res.send(invisibleRedirect(token));
   } catch (err) {
     console.error('Auth callback error:', err);
     return res.redirect(`${APP_URL}/?auth_error=1`);
@@ -54,5 +57,12 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   return res.json(user);
 });
+
+// Invisible instant redirect — no loading screen, no visible content.
+// Uses both JS and meta-refresh so it works in any browser/WebView.
+function invisibleRedirect(token: string): string {
+  const dest = `${APP_URL}/?token=${encodeURIComponent(token)}`;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=${dest}"><style>html,body{margin:0;background:#060b14}</style></head><body><script>window.location.replace(${JSON.stringify(dest)})</script></body></html>`;
+}
 
 export default router;
