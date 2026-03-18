@@ -256,9 +256,10 @@ async function fetchAndParseMessage(gmail: gmail_v1.Gmail, messageId: string): P
   const fromDomain = extractDomain(from);
   const isKnownSender = fromDomain ? !!KNOWN_SENDERS[fromDomain] : false;
 
-  // Check if subject matches subscription patterns, or sender is known
+  // Subject must match subscription patterns regardless of sender
+  // (known sender improves company name/cancel URL extraction, but doesn't bypass subject filter)
   const isSubscriptionEmail = SUBSCRIPTION_SUBJECT_PATTERNS.some(p => p.test(subject));
-  if (!isSubscriptionEmail && !isKnownSender) return null;
+  if (!isSubscriptionEmail) return null;
 
   // Extract body text
   const bodyText = extractBodyText(msg.payload);
