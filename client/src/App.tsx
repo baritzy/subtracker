@@ -10,6 +10,7 @@ import { Login } from '@/pages/Login';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Page = 'dashboard' | 'history' | 'settings' | 'calendar' | 'trials';
 
@@ -28,6 +29,7 @@ const pageVariants = {
 };
 
 export default function App() {
+  const { theme } = useTheme();
   const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
   const [page, setPage] = useState<Page>('dashboard');
   const [fabOpen, setFabOpen] = useState(() => sessionStorage.getItem('fabOpen') === 'true');
@@ -97,6 +99,7 @@ export default function App() {
       minHeight: '100dvh',
       background: '#060b14',
       backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
+      filter: theme === 'light' ? 'invert(1) hue-rotate(180deg)' : undefined,
     }}>
       {/* Header */}
       <header style={{
