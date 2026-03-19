@@ -19,16 +19,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    const lightBg = '#f0f4f8';
     const darkBg = '#060b14';
     if (theme === 'light') {
       document.documentElement.classList.add('theme-light');
       document.body.classList.add('theme-light');
-      document.documentElement.style.background = lightBg;
-      document.body.style.background = lightBg;
+      // Apply filter to the root HTML element so it inverts the entire viewport,
+      // including its own background — this works reliably on Android Chrome TWA
+      document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
+      document.documentElement.style.background = darkBg;
+      document.body.style.background = darkBg;
     } else {
       document.documentElement.classList.remove('theme-light');
       document.body.classList.remove('theme-light');
+      document.documentElement.style.filter = '';
       document.documentElement.style.background = darkBg;
       document.body.style.background = darkBg;
     }

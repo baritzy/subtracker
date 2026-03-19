@@ -132,10 +132,21 @@ function TestNotificationButton() {
       )}
       {status === 'denied' && (
         <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '4px' }}>ההתראות חסומות</div>
-          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.7 }}>
-            הפעל התראות עבור SubTracker בהגדרות המכשיר, ואז לחץ שוב על הכפתור
-          </div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '8px' }}>ההתראות חסומות</div>
+          <button
+            onClick={() => {
+              // Open Android notification settings for SubTracker directly
+              window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;end';
+            }}
+            style={{
+              width: '100%', padding: '10px', borderRadius: '8px',
+              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+              color: '#fca5a5', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'Heebo', sans-serif",
+            }}
+          >
+            פתח הגדרות התראות
+          </button>
         </div>
       )}
       {status === 'unsupported' && (

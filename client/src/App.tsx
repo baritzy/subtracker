@@ -97,8 +97,8 @@ export default function App() {
   return (
     <div style={{
       minHeight: '100dvh',
-      backgroundImage: theme !== 'light' ? 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)' : undefined,
-      filter: theme === 'light' ? 'invert(1) hue-rotate(180deg)' : undefined,
+      background: '#060b14',
+      backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
     }}>
       {/* Header */}
       <header style={{
