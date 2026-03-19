@@ -89,21 +89,13 @@ function ThemeToggle() {
   );
 }
 
-function isAndroid() { return /android/i.test(navigator.userAgent); }
-function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
-function getPermissionInstructions() {
-  if (isAndroid()) return 'הגדרות → אפליקציות → Chrome → הרשאות → התראות → אפשר';
-  if (isIOS()) return 'הגדרות → Safari → התראות → אפשר';
-  return 'לחץ על מנעול/מידע ליד כתובת האתר בדפדפן → התראות → אפשר';
-}
-
 function TestNotificationButton() {
   const [status, setStatus] = useState<'idle' | 'sent' | 'denied' | 'unsupported'>('idle');
 
   async function handleTest() {
     if (!('Notification' in window) || !window.isSecureContext) { setStatus('unsupported'); return; }
     let permission = Notification.permission;
-    if (permission === 'default') permission = await Notification.requestPermission();
+    if (permission !== 'granted') permission = await Notification.requestPermission();
     if (permission !== 'granted') { setStatus('denied'); return; }
 
     try {
@@ -140,10 +132,9 @@ function TestNotificationButton() {
       )}
       {status === 'denied' && (
         <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '6px' }}>הרשאות התראות חסומות לאתר זה</div>
-          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.7 }}>{getPermissionInstructions()}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-            לאחר שינוי ההגדרות — רענן את הדף ונסה שוב
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '4px' }}>ההתראות חסומות</div>
+          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.7 }}>
+            הפעל התראות עבור SubTracker בהגדרות המכשיר, ואז לחץ שוב על הכפתור
           </div>
         </div>
       )}
