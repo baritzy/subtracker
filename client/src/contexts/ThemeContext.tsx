@@ -21,25 +21,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const html = document.documentElement;
 
-    // Clean up any leftover inline styles set by previous filter-based approaches
+    // Remove any leftover inline styles from previous approaches
     html.style.removeProperty('filter');
-    html.style.removeProperty('background');
-    html.style.removeProperty('background-color');
     document.body.style.removeProperty('filter');
-    document.body.style.removeProperty('background');
-    document.body.style.removeProperty('background-color');
-    const root = document.getElementById('root');
-    if (root) {
-      root.style.removeProperty('filter');
-      root.style.removeProperty('background');
-    }
+    const rootEl = document.getElementById('root');
+    if (rootEl) rootEl.style.removeProperty('filter');
 
     if (theme === 'light') {
       html.classList.add('theme-light');
       document.body.classList.add('theme-light');
+      // Set CSS variables directly — most reliable on Android TWA
+      html.style.setProperty('--bg-page', '#f1f5f9');
+      html.style.setProperty('--bg-gradient', 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent)');
+      html.style.setProperty('--bg-header', 'rgba(241,245,249,0.92)');
+      html.style.setProperty('--bg-card', 'rgba(0,0,0,0.04)');
+      html.style.setProperty('--bg-card-hover', 'rgba(0,0,0,0.07)');
+      html.style.setProperty('--border', 'rgba(0,0,0,0.09)');
+      html.style.setProperty('--border-faint', 'rgba(0,0,0,0.05)');
+      html.style.setProperty('--text-1', '#0f172a');
+      html.style.setProperty('--text-2', '#1e293b');
+      html.style.setProperty('--text-3', '#475569');
+      html.style.setProperty('--text-4', '#64748b');
     } else {
       html.classList.remove('theme-light');
       document.body.classList.remove('theme-light');
+      // Restore dark defaults
+      html.style.setProperty('--bg-page', '#060b14');
+      html.style.setProperty('--bg-gradient', 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)');
+      html.style.setProperty('--bg-header', 'rgba(6,11,20,0.88)');
+      html.style.setProperty('--bg-card', 'rgba(255,255,255,0.03)');
+      html.style.setProperty('--bg-card-hover', 'rgba(255,255,255,0.05)');
+      html.style.setProperty('--border', 'rgba(255,255,255,0.08)');
+      html.style.setProperty('--border-faint', 'rgba(255,255,255,0.05)');
+      html.style.setProperty('--text-1', '#f1f5f9');
+      html.style.setProperty('--text-2', '#e2e8f0');
+      html.style.setProperty('--text-3', '#94a3b8');
+      html.style.setProperty('--text-4', '#64748b');
     }
 
     localStorage.setItem('theme', theme);

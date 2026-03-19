@@ -141,7 +141,7 @@ function TestNotificationButton() {
               // APPLICATION_DETAILS_SETTINGS is more universally supported than APP_NOTIFICATION_SETTINGS.
               // No browser_fallback_url — if the intent fails we stay on this page.
               window.location.href =
-                'intent:package:com.onrender.subtracker#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;scheme=package;end';
+                'intent://com.onrender.subtracker#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;scheme=package;end';
             }}
             style={{
               width: '100%', padding: '10px', borderRadius: '8px',
