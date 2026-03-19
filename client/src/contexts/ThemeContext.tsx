@@ -48,11 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         html.style.setProperty(k, v);
         document.body.style.setProperty(k, v);
       }
-      // Force background directly — bypasses any cascade issue in Android WebView
       html.style.backgroundColor = '#f1f5f9';
       document.body.style.backgroundColor = '#f1f5f9';
-      // 'only light' tells Android WebView / Chrome: do NOT apply Force Dark — we handle it
-      html.style.colorScheme = 'only light';
     } else {
       html.classList.remove('theme-light');
       document.body.classList.remove('theme-light');
@@ -73,11 +70,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         html.style.setProperty(k, v);
         document.body.style.setProperty(k, v);
       }
-      // Force background directly
       html.style.backgroundColor = '#060b14';
       document.body.style.backgroundColor = '#060b14';
-      // Tell Chrome we're handling dark mode ourselves
-      html.style.colorScheme = 'dark';
     }
 
     localStorage.setItem('theme', theme);
