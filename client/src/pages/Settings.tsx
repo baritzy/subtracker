@@ -136,7 +136,11 @@ function TestNotificationButton() {
           <button
             onClick={() => {
               // Open Android notification settings for SubTracker directly
-              window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;end';
+              const a = document.createElement('a');
+              a.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;end';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
             }}
             style={{
               width: '100%', padding: '10px', borderRadius: '8px',

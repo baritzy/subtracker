@@ -75,11 +75,7 @@ input, select, textarea, button {
   }
 }
 
-/* Light theme */
-html.theme-light,
-body.theme-light {
-  background: #f0f4f8;
-}
+/* Light theme — backgrounds are handled by JS filter on <html> in ThemeContext */
 
 /* Counter-invert images so they don't look wrong in light mode */
 body.theme-light img:not(.logo-bg img) {
