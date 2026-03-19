@@ -89,84 +89,6 @@ function ThemeToggle() {
   );
 }
 
-function TestNotificationButton() {
-  const [status, setStatus] = useState<'idle' | 'sent' | 'denied' | 'opening' | 'unsupported'>('idle');
-
-  async function handleTest() {
-    if (!('Notification' in window) || !window.isSecureContext) { setStatus('unsupported'); return; }
-    let permission = Notification.permission;
-    if (permission !== 'granted') permission = await Notification.requestPermission();
-    if (permission !== 'granted') { setStatus('denied'); return; }
-
-    try {
-      // Use SW showNotification — works on all platforms including Android
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification('SubTracker — בדיקה ✓', {
-        body: 'ההתראות עובדות! Netflix מתחדש מחר.',
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        tag: 'test-notification',
-      });
-    } catch {
-      // Fallback for desktop browsers without SW
-      new Notification('SubTracker — בדיקה ✓', { body: 'ההתראות עובדות! Netflix מתחדש מחר.', icon: '/icons/icon-192.png' });
-    }
-    setStatus('sent');
-    setTimeout(() => setStatus('idle'), 3000);
-  }
-
-  return (
-    <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '14px' }}>
-      <button onClick={handleTest} style={{
-        width: '100%', padding: '10px', borderRadius: '10px',
-        background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
-        color: '#818cf8', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-        fontFamily: "'Heebo', sans-serif",
-      }}>
-        שלח התראת בדיקה
-      </button>
-      {status === 'sent' && (
-        <div style={{ marginTop: '8px', fontSize: '12px', color: '#4ade80', textAlign: 'center' }}>
-          ✓ ההתראה נשלחה — ההתראות עובדות!
-        </div>
-      )}
-      {status === 'denied' && (
-        <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5', marginBottom: '8px' }}>ההתראות חסומות</div>
-          <button
-            type="button"
-            onClick={() => {
-              setStatus('opening');
-              // Try to open the app's Android settings page (notifications are accessible from there).
-              // APPLICATION_DETAILS_SETTINGS is more universally supported than APP_NOTIFICATION_SETTINGS.
-              // No browser_fallback_url — if the intent fails we stay on this page.
-              window.location.href =
-                'intent://com.onrender.subtracker#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;scheme=package;end';
-            }}
-            style={{
-              width: '100%', padding: '10px', borderRadius: '8px',
-              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-              color: '#fca5a5', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-              fontFamily: "'Heebo', sans-serif",
-            }}
-          >
-            {status === 'opening' ? 'פותח הגדרות...' : 'פתח הגדרות התראות'}
-          </button>
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#94a3b8', textAlign: 'center', lineHeight: 1.5 }}>
-            הגדרות ← אפליקציות ← SubTracker ← התראות
-          </div>
-        </div>
-      )}
-      {status === 'unsupported' && (
-        <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5' }}>
-            {!window.isSecureContext ? 'נדרש חיבור מאובטח (HTTPS)' : 'הדפדפן לא תומך בהתראות'}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function Settings({ onNavigate, onLogout }: Props) {
   const [prefs, setPrefs] = useNotificationPrefs();
@@ -212,7 +134,6 @@ export function Settings({ onNavigate, onLogout }: Props) {
         <Row label="3 שעות לפני" last>
           <Checkbox checked={prefs.h3} onChange={() => setPrefs({ ...prefs, h3: !prefs.h3 })} />
         </Row>
-        <TestNotificationButton />
       </Section>
 
       {/* Account */}

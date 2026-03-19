@@ -1,4 +1,4 @@
-const CACHE = 'sub-tracker-v3';
+const CACHE = 'sub-tracker-v4';
 const ASSETS = [
   '/',
   '/index.html',
