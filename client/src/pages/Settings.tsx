@@ -90,7 +90,7 @@ function ThemeToggle() {
 }
 
 function TestNotificationButton() {
-  const [status, setStatus] = useState<'idle' | 'sent' | 'denied' | 'unsupported'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sent' | 'denied' | 'opening' | 'unsupported'>('idle');
 
   async function handleTest() {
     if (!('Notification' in window) || !window.isSecureContext) { setStatus('unsupported'); return; }
@@ -136,7 +136,12 @@ function TestNotificationButton() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;end';
+              setStatus('opening');
+              // browser_fallback_url is required so Chrome handles the intent URL
+              // correctly in TWA — without it the navigation may fail silently.
+              const fallback = encodeURIComponent('https://subtracker.onrender.com/');
+              window.location.href =
+                `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;S.browser_fallback_url=${fallback};end`;
             }}
             style={{
               width: '100%', padding: '10px', borderRadius: '8px',
@@ -145,10 +150,10 @@ function TestNotificationButton() {
               fontFamily: "'Heebo', sans-serif",
             }}
           >
-            פתח הגדרות התראות
+            {status === 'opening' ? 'פותח הגדרות...' : 'פתח הגדרות התראות'}
           </button>
           <div style={{ marginTop: '8px', fontSize: '11px', color: '#94a3b8', textAlign: 'center', lineHeight: 1.5 }}>
-            או: הגדרות ← אפליקציות ← SubTracker ← התראות
+            הגדרות ← אפליקציות ← SubTracker ← התראות
           </div>
         </div>
       )}

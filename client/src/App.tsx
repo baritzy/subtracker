@@ -99,6 +99,9 @@ export default function App() {
       minHeight: '100dvh',
       background: '#060b14',
       backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
+      // Filter lives here — on the SAME element as the background.
+      // This guarantees the background is inside the filter's compositing layer on Android Chrome TWA.
+      filter: theme === 'light' ? 'invert(1) hue-rotate(180deg)' : undefined,
     }}>
       {/* Header */}
       <header style={{
