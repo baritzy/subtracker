@@ -6,14 +6,43 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ─── Theme CSS variables ─── */
+:root {
+  --bg-page:     #060b14;
+  --bg-gradient: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent);
+  --bg-header:   rgba(6,11,20,0.88);
+  --bg-card:     rgba(255,255,255,0.03);
+  --bg-card-hover: rgba(255,255,255,0.05);
+  --border:      rgba(255,255,255,0.08);
+  --border-faint:rgba(255,255,255,0.05);
+  --text-1:      #f1f5f9;
+  --text-2:      #e2e8f0;
+  --text-3:      #94a3b8;
+  --text-4:      #64748b;
+}
+
+html.theme-light {
+  --bg-page:     #f1f5f9;
+  --bg-gradient: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent);
+  --bg-header:   rgba(241,245,249,0.92);
+  --bg-card:     rgba(0,0,0,0.04);
+  --bg-card-hover: rgba(0,0,0,0.07);
+  --border:      rgba(0,0,0,0.09);
+  --border-faint:rgba(0,0,0,0.05);
+  --text-1:      #0f172a;
+  --text-2:      #1e293b;
+  --text-3:      #475569;
+  --text-4:      #64748b;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   direction: rtl;
   font-family: 'Heebo', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #060b14;
-  color: #f1f5f9;
+  background: var(--bg-page);
+  color: var(--text-1);
   overscroll-behavior: none;
 }
 
@@ -73,16 +102,6 @@ input, select, textarea, button {
   .page-padding {
     padding: 20px 16px !important;
   }
-}
-
-/* Light theme — backgrounds are handled by JS filter on <html> in ThemeContext */
-
-/* Counter-invert images so they don't look wrong in light mode */
-body.theme-light img:not(.logo-bg img) {
-  filter: invert(1) hue-rotate(180deg);
-}
-body.theme-light .logo-bg img {
-  filter: none;
 }
 
 @keyframes pulse {

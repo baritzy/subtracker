@@ -97,11 +97,8 @@ export default function App() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: '#060b14',
-      backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
-      // Filter lives here — on the SAME element as the background.
-      // This guarantees the background is inside the filter's compositing layer on Android Chrome TWA.
-      filter: theme === 'light' ? 'invert(1) hue-rotate(180deg)' : undefined,
+      background: 'var(--bg-page)',
+      backgroundImage: 'var(--bg-gradient)',
     }}>
       {/* Header */}
       <header style={{
@@ -110,7 +107,7 @@ export default function App() {
         paddingInlineEnd: 'max(20px, env(safe-area-inset-left))',
         paddingTop: 'max(0px, env(safe-area-inset-top))',
         position: 'sticky', top: 0, zIndex: 40,
-        background: 'rgba(6,11,20,0.88)', backdropFilter: 'blur(16px)',
+        background: 'var(--bg-header)', backdropFilter: 'blur(16px)',
       }}>
         <div style={{
           maxWidth: '720px', margin: '0 auto',

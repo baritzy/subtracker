@@ -11,7 +11,7 @@ interface Props {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontSize: '11px', color: '#64748b', fontWeight: 700,
+      fontSize: '11px', color: 'var(--text-4)', fontWeight: 700,
       textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px',
     }}>
       {children}
@@ -22,7 +22,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function Section({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
       borderRadius: '16px', padding: '20px', marginBottom: '12px',
     }}>
       {children}
@@ -34,9 +34,9 @@ function Row({ label, children, last = false }: { label: string; children: React
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '10px 0', borderBottom: last ? 'none' : '1px solid rgba(255,255,255,0.05)',
+      padding: '10px 0', borderBottom: last ? 'none' : '1px solid var(--border-faint)',
     }}>
-      <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: '14px', color: 'var(--text-2)', fontWeight: 500 }}>{label}</span>
       {children}
     </div>
   );
@@ -137,11 +137,11 @@ function TestNotificationButton() {
             type="button"
             onClick={() => {
               setStatus('opening');
-              // browser_fallback_url is required so Chrome handles the intent URL
-              // correctly in TWA — without it the navigation may fail silently.
-              const fallback = encodeURIComponent('https://subtracker.onrender.com/');
+              // Try to open the app's Android settings page (notifications are accessible from there).
+              // APPLICATION_DETAILS_SETTINGS is more universally supported than APP_NOTIFICATION_SETTINGS.
+              // No browser_fallback_url — if the intent fails we stay on this page.
               window.location.href =
-                `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.onrender.subtracker;S.browser_fallback_url=${fallback};end`;
+                'intent:package:com.onrender.subtracker#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;scheme=package;end';
             }}
             style={{
               width: '100%', padding: '10px', borderRadius: '8px',

@@ -19,22 +19,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('theme-light');
-      document.body.classList.add('theme-light');
-      // Set html/body to light directly — these are outside the app div's filter,
-      // so we set them to light without filtering.
-      document.documentElement.style.backgroundColor = '#f0f4f8';
-      document.body.style.backgroundColor = '#f0f4f8';
-    } else {
-      document.documentElement.classList.remove('theme-light');
-      document.body.classList.remove('theme-light');
-      document.documentElement.style.backgroundColor = '#060b14';
-      document.body.style.backgroundColor = '#060b14';
-    }
-    // Clean up any filter that may have been set on root by a previous approach
+    const html = document.documentElement;
+
+    // Clean up any leftover inline styles set by previous filter-based approaches
+    html.style.removeProperty('filter');
+    html.style.removeProperty('background');
+    html.style.removeProperty('background-color');
+    document.body.style.removeProperty('filter');
+    document.body.style.removeProperty('background');
+    document.body.style.removeProperty('background-color');
     const root = document.getElementById('root');
-    if (root) { root.style.filter = ''; root.style.background = ''; }
+    if (root) {
+      root.style.removeProperty('filter');
+      root.style.removeProperty('background');
+    }
+
+    if (theme === 'light') {
+      html.classList.add('theme-light');
+      document.body.classList.add('theme-light');
+    } else {
+      html.classList.remove('theme-light');
+      document.body.classList.remove('theme-light');
+    }
+
     localStorage.setItem('theme', theme);
   }, [theme]);
 
