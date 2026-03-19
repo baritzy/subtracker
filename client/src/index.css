@@ -6,9 +6,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Declare both color schemes so Chrome won't apply Force Dark Mode automatically */
+/* Tell Android WebView / Chrome: this page handles its own color scheme — don't apply Force Dark */
 :root {
   color-scheme: light dark;
+}
+html[style*="color-scheme: only light"] {
+  color-scheme: only light !important;
+  background-color: #f1f5f9 !important;
 }
 
 /* ─── Theme CSS variables ─── */

@@ -51,8 +51,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // Force background directly — bypasses any cascade issue in Android WebView
       html.style.backgroundColor = '#f1f5f9';
       document.body.style.backgroundColor = '#f1f5f9';
-      // Tell Chrome not to apply its own Force Dark Mode filter
-      html.style.colorScheme = 'light';
+      // 'only light' tells Android WebView / Chrome: do NOT apply Force Dark — we handle it
+      html.style.colorScheme = 'only light';
     } else {
       html.classList.remove('theme-light');
       document.body.classList.remove('theme-light');
