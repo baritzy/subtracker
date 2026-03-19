@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Subscription } from '@/types';
 import type { NotifPrefs } from './useNotificationPrefs';
+import { api } from '@/lib/api';
 
 const OFFSETS = [
   { key: '7d',  prefKey: 'd7',  hours: 168, label: 'בעוד 7 ימים' },
@@ -31,11 +32,48 @@ function localNotifKey(id: number, offsetKey: string): string {
   return `notif-${id}-${offsetKey}-${getTodayDateString()}`;
 }
 
+// Convert a base64 VAPID public key string to Uint8Array
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+}
+
+// Subscribe to Web Push and send subscription to server
+async function subscribeToPush(): Promise<void> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+
+    // Check if already subscribed
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return; // already subscribed
+
+    const { key } = await api.push.vapidKey();
+    if (!key) return;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+
+    const json = sub.toJSON();
+    const p256dh = json.keys?.p256dh;
+    const auth = json.keys?.auth;
+    if (!p256dh || !auth) return;
+
+    await api.push.subscribe({ endpoint: sub.endpoint, p256dh, auth });
+    console.log('[Push] Subscribed to Web Push.');
+  } catch (err) {
+    console.warn('[Push] Subscribe failed:', err);
+  }
+}
+
 async function showImmediateNotification(sub: Subscription, label: string, offsetKey: string) {
   if (Notification.permission !== 'granted') return;
   const tag = `imm-${sub.id}-${offsetKey}`;
   try {
-    // Service worker showNotification — required on Android
     const reg = await navigator.serviceWorker.ready;
     await reg.showNotification('SubTracker', {
       body: `${sub.company_name} מתחדש ${label}`,
@@ -45,7 +83,6 @@ async function showImmediateNotification(sub: Subscription, label: string, offse
       data: { url: '/' },
     });
   } catch {
-    // Desktop fallback
     new Notification('SubTracker', {
       body: `${sub.company_name} מתחדש ${label}`,
       icon: '/icons/icon-192.png',
@@ -67,7 +104,6 @@ function runImmediateCheck(subscriptions: Subscription[]) {
     const renewalTs = new Date(sub.renewal_date).getTime();
 
     for (const offset of OFFSETS) {
-      // Skip if this notification type is disabled
       if (!prefs[offset.prefKey]) continue;
 
       const storageKey = localNotifKey(sub.id, offset.key);
@@ -87,15 +123,23 @@ function runImmediateCheck(subscriptions: Subscription[]) {
 export function useNotifications(subscriptions: Subscription[]) {
   const permissionRequested = useRef(false);
 
-  // Request permission on mount
+  // Request permission on mount, then subscribe to Web Push
   useEffect(() => {
     if (permissionRequested.current) return;
     permissionRequested.current = true;
 
     if (!('Notification' in window)) return;
-    if (Notification.permission === 'default') {
-      void Notification.requestPermission();
+
+    async function requestAndSubscribe() {
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      if (permission === 'granted') {
+        await subscribeToPush();
+      }
     }
+    void requestAndSubscribe();
   }, []);
 
   // Send subscriptions to SW and run immediate check when subscriptions change
@@ -104,7 +148,7 @@ export function useNotifications(subscriptions: Subscription[]) {
 
     const prefs = getPrefs();
 
-    // Send to service worker (include prefs so SW can also filter)
+    // Send to service worker for background checks while app is in recent apps
     if ('serviceWorker' in navigator) {
       void navigator.serviceWorker.ready.then(reg => {
         reg.active?.postMessage({
@@ -115,7 +159,7 @@ export function useNotifications(subscriptions: Subscription[]) {
       });
     }
 
-    // Immediate local check
+    // Immediate local check (for when app is opened)
     runImmediateCheck(subscriptions);
   }, [subscriptions]);
 }

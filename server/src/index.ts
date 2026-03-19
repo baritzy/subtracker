@@ -5,9 +5,11 @@ import path from 'path';
 import subscriptionsRouter from './routes/subscriptions';
 import gmailRouter from './routes/gmail';
 import authRouter from './routes/auth';
+import pushRouter from './routes/push';
 import { initDb } from './db/database';
 import { startPolling, isGmailConnected } from './services/gmailService';
 import { startRenewalScheduler } from './services/renewalService';
+import { startPushScheduler } from './services/pushScheduler';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -19,6 +21,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/gmail', gmailRouter);
+app.use('/api/push', pushRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -56,6 +59,9 @@ async function start(): Promise<void> {
 
     // Start renewal scheduler (runs on startup + every midnight)
     startRenewalScheduler();
+
+    // Start push notification scheduler (runs every 10 minutes)
+    startPushScheduler();
   });
 }
 

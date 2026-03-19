@@ -71,6 +71,14 @@ export const api = {
       request<import('@/types').Invoice[]>(`/subscriptions/${id}/invoices`),
   },
 
+  push: {
+    vapidKey: () => request<{ key: string }>('/push/vapid-public'),
+    subscribe: (sub: { endpoint: string; p256dh: string; auth: string }) =>
+      request<{ ok: boolean }>('/push/subscribe', { method: 'POST', body: JSON.stringify(sub) }),
+    unsubscribe: (endpoint: string) =>
+      request<{ ok: boolean }>('/push/subscribe', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+  },
+
   cancelUrl: (service: string) =>
     request<{ url: string | null }>(`/subscriptions/cancel-url?service=${encodeURIComponent(service)}`),
 

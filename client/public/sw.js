@@ -42,7 +42,29 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── Notification logic ────────────────────────────────────────────────────────
+// ── Web Push (server-sent, works when app is closed) ─────────────────────────
+
+self.addEventListener('push', e => {
+  let title = 'SubTracker';
+  let body = '';
+  try {
+    const data = e.data?.json();
+    title = data.title ?? title;
+    body  = data.body  ?? body;
+  } catch {
+    body = e.data?.text() ?? '';
+  }
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: '/' },
+    })
+  );
+});
+
+// ── Notification logic (local, while app is in recent apps) ───────────────────
 
 let storedSubscriptions = [];
 const sentNotifications = new Set();

@@ -6,6 +6,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Declare both color schemes so Chrome won't apply Force Dark Mode automatically */
+:root {
+  color-scheme: light dark;
+}
+
 /* ─── Theme CSS variables ─── */
 :root {
   --bg-page:     #060b14;
