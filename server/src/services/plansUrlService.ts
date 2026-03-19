@@ -121,6 +121,7 @@ const PLANS_URLS: Record<string, string> = {
 
 export function lookupPlansUrl(serviceName: string): string | null {
   const key = serviceName.toLowerCase().replace(/[^a-z0-9+ ]/g, '').trim();
+  if (!key) return null;
   // Exact match
   if (PLANS_URLS[key]) return PLANS_URLS[key];
   // Partial match — find first entry whose key contains the search term or vice versa
