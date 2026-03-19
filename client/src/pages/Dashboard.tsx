@@ -168,6 +168,7 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
               index={i}
               onEdit={handleEdit}
               onCancel={handleCancel}
+              onUpdate={async (id, updates) => { await update(id, updates); }}
             />
           ))}
         </div>

@@ -75,7 +75,12 @@ input, select, textarea, button {
   }
 }
 
-/* Light theme — filter applied on the root App div via inline style in App.tsx */
+/* Light theme */
+html.theme-light,
+body.theme-light {
+  background: #f0f4f8;
+}
+
 /* Counter-invert images so they don't look wrong in light mode */
 body.theme-light img:not(.logo-bg img) {
   filter: invert(1) hue-rotate(180deg);

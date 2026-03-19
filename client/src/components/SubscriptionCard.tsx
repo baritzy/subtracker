@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, MoreVertical, Edit2, Trash2, Receipt, ChevronDown } from 'lucide-react';
-import type { Subscription } from '@/types';
+import { ExternalLink, MoreVertical, Edit2, Trash2, Receipt, ChevronDown, ArrowUpDown } from 'lucide-react';
+import type { Subscription, UpdateSubscriptionPayload } from '@/types';
 import { formatRenewalDate, formatDaysLabel, daysUntilRenewal, renewalUrgency } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { lookupLogoUrl, toClearbitUrl, toFaviconUrl } from '@/lib/logos';
 import { InvoiceModal } from './InvoiceModal';
+import { PlanChangeModal } from './PlanChangeModal';
 import { api } from '@/lib/api';
 
 interface Props {
   sub: Subscription;
   onEdit: (sub: Subscription) => void;
   onCancel?: (id: number) => void;
+  onUpdate?: (id: number, updates: UpdateSubscriptionPayload) => Promise<void>;
   index?: number;
 }
 
@@ -60,10 +62,11 @@ function getCompanyWebsite(logoUrl: string | null, companyName: string): string 
   return null;
 }
 
-export function SubscriptionCard({ sub, onEdit, onCancel, index = 0 }: Props) {
+export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showInvoices, setShowInvoices] = useState(false);
+  const [showPlanChange, setShowPlanChange] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [noCancelUrl, setNoCancelUrl] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -260,6 +263,11 @@ export function SubscriptionCard({ sub, onEdit, onCancel, index = 0 }: Props) {
                       <MenuBtn onClick={() => { onEdit(sub); setMenuOpen(false); setExpanded(false); }}>
                         <Edit2 size={14} /> עריכה
                       </MenuBtn>
+                      {onUpdate && (
+                        <MenuBtn onClick={() => { setShowPlanChange(true); setMenuOpen(false); }}>
+                          <ArrowUpDown size={14} /> שנה מסלול
+                        </MenuBtn>
+                      )}
                       <MenuBtn danger onClick={() => { onCancel?.(sub.id); setMenuOpen(false); }}>
                         <Trash2 size={14} /> ביטלתי את המנוי
                       </MenuBtn>
@@ -423,6 +431,16 @@ export function SubscriptionCard({ sub, onEdit, onCancel, index = 0 }: Props) {
       </AnimatePresence>
 
       {showInvoices && <InvoiceModal sub={sub} onClose={() => setShowInvoices(false)} />}
+      {showPlanChange && onUpdate && (
+        <PlanChangeModal
+          sub={sub}
+          onClose={() => setShowPlanChange(false)}
+          onSave={async (updates) => {
+            await onUpdate(sub.id, updates as Partial<Subscription>);
+            setShowPlanChange(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 }
