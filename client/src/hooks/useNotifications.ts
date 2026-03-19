@@ -31,16 +31,32 @@ function localNotifKey(id: number, offsetKey: string): string {
   return `notif-${id}-${offsetKey}-${getTodayDateString()}`;
 }
 
-function showImmediateNotification(sub: Subscription, label: string) {
+async function showImmediateNotification(sub: Subscription, label: string, offsetKey: string) {
   if (Notification.permission !== 'granted') return;
-  new Notification('SubTracker', {
-    body: `${sub.company_name} מתחדש ${label}`,
-    icon: '/icons/icon-192.png',
-  });
+  const tag = `imm-${sub.id}-${offsetKey}`;
+  try {
+    // Service worker showNotification — required on Android
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('SubTracker', {
+      body: `${sub.company_name} מתחדש ${label}`,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag,
+      data: { url: '/' },
+    });
+  } catch {
+    // Desktop fallback
+    new Notification('SubTracker', {
+      body: `${sub.company_name} מתחדש ${label}`,
+      icon: '/icons/icon-192.png',
+      tag,
+    });
+  }
 }
 
 function runImmediateCheck(subscriptions: Subscription[]) {
   if (Notification.permission !== 'granted') return;
+  if (!('serviceWorker' in navigator)) return;
 
   const now = Date.now();
   const prefs = getPrefs();
@@ -62,7 +78,7 @@ function runImmediateCheck(subscriptions: Subscription[]) {
 
       if (diff > 0 && diff <= windowMs) {
         localStorage.setItem(storageKey, '1');
-        showImmediateNotification(sub, offset.label);
+        void showImmediateNotification(sub, offset.label, offset.key);
       }
     }
   }
