@@ -66,8 +66,8 @@ export function Login({ onLogin }: Props) {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: '#060b14',
-      backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
+      background: 'var(--bg-page)',
+      backgroundImage: 'var(--bg-gradient)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -82,7 +82,7 @@ export function Login({ onLogin }: Props) {
           alt="SubTracker"
           style={{ width: '56px', height: '56px', borderRadius: '16px' }}
         />
-        <span style={{ fontSize: '26px', fontWeight: '800', color: '#f1f5f9', letterSpacing: '-0.5px' }}>
+        <span style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-logo)', letterSpacing: '-0.5px' }}>
           SubTracker
         </span>
       </div>
@@ -91,8 +91,8 @@ export function Login({ onLogin }: Props) {
       <div style={{
         width: '100%',
         maxWidth: '360px',
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
         borderRadius: '24px',
         padding: '40px 32px',
         display: 'flex',
@@ -101,10 +101,10 @@ export function Login({ onLogin }: Props) {
         gap: '24px',
       }}>
         <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#f1f5f9', margin: 0 }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--text-1)', margin: 0 }}>
             שלום 👋
           </h1>
-          <p style={{ fontSize: '14px', color: '#64748b', marginTop: '8px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-4)', marginTop: '8px', lineHeight: 1.6 }}>
             התחבר עם Google כדי לשמור את המנויים שלך ולגשת אליהם מכל מכשיר.
           </p>
         </div>
@@ -119,19 +119,19 @@ export function Login({ onLogin }: Props) {
             justifyContent: 'center',
             gap: '12px',
             padding: '14px 24px',
-            background: loading ? 'rgba(255,255,255,0.05)' : '#fff',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: loading ? 'var(--bg-card-hover)' : '#fff',
+            border: '1px solid var(--border)',
             borderRadius: '14px',
             cursor: loading ? 'not-allowed' : 'pointer',
             fontSize: '15px',
             fontWeight: '600',
-            color: loading ? '#64748b' : '#1e293b',
+            color: loading ? 'var(--text-4)' : '#1e293b',
             fontFamily: "'Heebo', sans-serif",
             transition: 'opacity 0.15s',
           }}
         >
           {loading ? (
-            <span style={{ color: '#64748b' }}>מתחבר...</span>
+            <span style={{ color: 'var(--text-4)' }}>מתחבר...</span>
           ) : (
             <>
               <svg width="20" height="20" viewBox="0 0 24 24">
@@ -151,11 +151,11 @@ export function Login({ onLogin }: Props) {
           </p>
         )}
 
-        <p style={{ fontSize: '12px', color: '#334155', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-3)', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
           אנחנו שומרים רק את האימייל ושם שלך. לא קוראים מיילים.
         </p>
 
-        <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ width: '100%', height: '1px', background: 'var(--border-faint)' }} />
 
         <button
           onClick={handleContinueAsGuest}
@@ -164,12 +164,12 @@ export function Login({ onLogin }: Props) {
             width: '100%',
             padding: '12px 24px',
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border)',
             borderRadius: '14px',
             cursor: (guestLoading || loading) ? 'not-allowed' : 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            color: '#475569',
+            color: 'var(--text-3)',
             fontFamily: "'Heebo', sans-serif",
             transition: 'color 0.15s',
           }}

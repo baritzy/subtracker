@@ -29,7 +29,7 @@ const pageVariants = {
 };
 
 export default function App() {
-  const { theme } = useTheme();
+  useTheme();
   const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
   const [page, setPage] = useState<Page>('dashboard');
   const [fabOpen, setFabOpen] = useState(() => sessionStorage.getItem('fabOpen') === 'true');
@@ -97,10 +97,8 @@ export default function App() {
   return (
     <div style={{
       minHeight: '100dvh',
-      backgroundColor: theme === 'light' ? '#f1f5f9' : '#060b14',
-      backgroundImage: theme === 'light'
-        ? 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent)'
-        : 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent)',
+      backgroundColor: 'var(--bg-page)',
+      backgroundImage: 'var(--bg-gradient)',
     }}>
       {/* Header */}
       <header style={{

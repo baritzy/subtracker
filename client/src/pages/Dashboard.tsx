@@ -64,11 +64,11 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
   const navBtnStyle: React.CSSProperties = {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
     padding: '10px 0',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
     borderRadius: '12px',
     cursor: 'pointer',
-    color: '#94a3b8',
+    color: 'var(--text-3)',
     fontSize: '14px',
     fontWeight: 600,
     fontFamily: "'Heebo', sans-serif",
@@ -82,24 +82,24 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
         <button
           style={navBtnStyle}
           onClick={() => onNavigate('history')}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e2e8f0'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94a3b8'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.color = 'var(--text-2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-3)'; }}
         >
           <HistoryIcon size={14} /> היסטוריה
         </button>
         <button
           style={navBtnStyle}
           onClick={() => onNavigate('calendar')}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e2e8f0'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94a3b8'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.color = 'var(--text-2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-3)'; }}
         >
           <CalendarDays size={14} /> יומן
         </button>
         <button
           style={navBtnStyle}
           onClick={() => onNavigate('trials')}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e2e8f0'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94a3b8'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.color = 'var(--text-2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-3)'; }}
         >
           <FlaskConical size={14} /> Trials
         </button>
@@ -128,8 +128,8 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
             style={{
               paddingInlineStart: '34px', paddingInlineEnd: '12px',
               paddingTop: '9px', paddingBottom: '9px',
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '10px', color: '#e2e8f0', fontSize: '14px', outline: 'none',
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '10px', color: 'var(--text-1)', fontSize: '14px', outline: 'none',
               width: '100%', fontFamily: "'Heebo', sans-serif",
             }}
           />
@@ -142,7 +142,7 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
           {[1, 2, 3].map(i => (
             <div key={i} style={{
               height: '200px', borderRadius: '18px',
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--bg-card)', border: '1px solid var(--border-faint)',
               animation: 'pulse 1.5s ease infinite',
             }} />
           ))}
