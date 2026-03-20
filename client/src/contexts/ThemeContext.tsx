@@ -14,7 +14,8 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('theme');
+    // theme_v2: new key — old 'theme' key had dark as default, this one has light as default
+    const stored = localStorage.getItem('theme_v2');
     return stored === 'dark' ? 'dark' : 'light';
   });
 
@@ -74,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.body.style.backgroundColor = '#060b14';
     }
 
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('theme_v2', theme);
   }, [theme]);
 
   function toggleTheme() {
