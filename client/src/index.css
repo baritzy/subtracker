@@ -30,6 +30,35 @@
   --btn-icon-border: rgba(0,0,0,0.1);
 }
 
+/* ─── When system is dark but user wants light: force light with !important ─── */
+/* Chrome's Auto Dark Theme modifies colors after CSS is applied.              */
+/* Using author !important rules overrides Chrome's UA dark-mode injection.    */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="dark"]) {
+    --bg-page:         #f1f5f9 !important;
+    --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent) !important;
+    --bg-header:       rgba(241,245,249,0.92) !important;
+    --bg-card:         rgba(0,0,0,0.04) !important;
+    --bg-card-hover:   rgba(0,0,0,0.07) !important;
+    --border:          rgba(0,0,0,0.09) !important;
+    --border-faint:    rgba(0,0,0,0.05) !important;
+    --text-1:          #0f172a !important;
+    --text-2:          #1e293b !important;
+    --text-3:          #475569 !important;
+    --text-4:          #64748b !important;
+    --text-logo:       #0f172a !important;
+    --border-header:   rgba(0,0,0,0.08) !important;
+    --btn-icon-bg:     rgba(0,0,0,0.06) !important;
+    --btn-icon-border: rgba(0,0,0,0.1) !important;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+  html:not([data-theme="dark"]) body {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+}
+
 /* ─── Dark mode — only when user explicitly chose dark ─── */
 html[data-theme="dark"] {
   --bg-page:         #060b14;
