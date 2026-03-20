@@ -29,6 +29,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     if (theme === 'dark') {
       html.setAttribute('data-theme', 'dark');
+      // LightningCSS strips 'only' from color-scheme in CSS files, so we set it via JS
+      html.style.colorScheme = 'dark';
       // Also set inline vars as a belt-and-suspenders for Android WebView
       const vars: [string, string][] = [
         ['--bg-page', '#060b14'],
@@ -55,6 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.body.style.backgroundColor = '#060b14';
     } else {
       html.removeAttribute('data-theme');
+      html.style.colorScheme = 'only light';
       const vars: [string, string][] = [
         ['--bg-page', '#f1f5f9'],
         ['--bg-gradient', 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent)'],

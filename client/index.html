@@ -17,11 +17,18 @@
 
     <title>מעקב מנויים</title>
 
-    <!-- Early theme: runs before React so no wrong-theme flash -->
+    <!-- Early theme: runs before React so no wrong-theme flash.
+         We also set color-scheme directly via JS inline style —
+         LightningCSS strips the 'only' keyword from CSS files, so we bypass it here. -->
     <script>
       (function () {
         var t = localStorage.getItem('theme_v2');
-        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+        } else {
+          document.documentElement.style.colorScheme = 'only light';
+        }
       })();
     </script>
   </head>
