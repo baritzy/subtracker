@@ -11,33 +11,42 @@
   color-scheme: only light;
 }
 
-/* ─── Theme CSS variables ─── */
+/* ─── Theme CSS variables — LIGHT is the default ─── */
 :root {
-  --bg-page:     #060b14;
-  --bg-gradient: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent);
-  --bg-header:   rgba(6,11,20,0.88);
-  --bg-card:     rgba(255,255,255,0.03);
-  --bg-card-hover: rgba(255,255,255,0.05);
-  --border:      rgba(255,255,255,0.08);
-  --border-faint:rgba(255,255,255,0.05);
-  --text-1:      #f1f5f9;
-  --text-2:      #e2e8f0;
-  --text-3:      #94a3b8;
-  --text-4:      #64748b;
+  --bg-page:         #f1f5f9;
+  --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent);
+  --bg-header:       rgba(241,245,249,0.92);
+  --bg-card:         rgba(0,0,0,0.04);
+  --bg-card-hover:   rgba(0,0,0,0.07);
+  --border:          rgba(0,0,0,0.09);
+  --border-faint:    rgba(0,0,0,0.05);
+  --text-1:          #0f172a;
+  --text-2:          #1e293b;
+  --text-3:          #475569;
+  --text-4:          #64748b;
+  --text-logo:       #0f172a;
+  --border-header:   rgba(0,0,0,0.08);
+  --btn-icon-bg:     rgba(0,0,0,0.06);
+  --btn-icon-border: rgba(0,0,0,0.1);
 }
 
-html.theme-light {
-  --bg-page:     #f1f5f9;
-  --bg-gradient: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent);
-  --bg-header:   rgba(241,245,249,0.92);
-  --bg-card:     rgba(0,0,0,0.04);
-  --bg-card-hover: rgba(0,0,0,0.07);
-  --border:      rgba(0,0,0,0.09);
-  --border-faint:rgba(0,0,0,0.05);
-  --text-1:      #0f172a;
-  --text-2:      #1e293b;
-  --text-3:      #475569;
-  --text-4:      #64748b;
+/* ─── Dark mode — only when user explicitly chose dark ─── */
+html[data-theme="dark"] {
+  --bg-page:         #060b14;
+  --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent);
+  --bg-header:       rgba(6,11,20,0.88);
+  --bg-card:         rgba(255,255,255,0.03);
+  --bg-card-hover:   rgba(255,255,255,0.05);
+  --border:          rgba(255,255,255,0.08);
+  --border-faint:    rgba(255,255,255,0.05);
+  --text-1:          #f1f5f9;
+  --text-2:          #e2e8f0;
+  --text-3:          #94a3b8;
+  --text-4:          #64748b;
+  --text-logo:       #f1f5f9;
+  --border-header:   rgba(255,255,255,0.06);
+  --btn-icon-bg:     rgba(255,255,255,0.05);
+  --btn-icon-border: rgba(255,255,255,0.1);
 }
 
 html, body {

@@ -81,7 +81,7 @@ export default function App() {
   if (authState === 'loading') {
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060b14',
+        minHeight: '100dvh', background: 'var(--bg-page)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{ width: '32px', height: '32px', border: '3px solid rgba(99,102,241,0.3)',
@@ -104,7 +104,7 @@ export default function App() {
     }}>
       {/* Header */}
       <header style={{
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid var(--border-header)',
         paddingInlineStart: 'max(20px, env(safe-area-inset-right))',
         paddingInlineEnd: 'max(20px, env(safe-area-inset-left))',
         paddingTop: 'max(0px, env(safe-area-inset-top))',
@@ -133,14 +133,14 @@ export default function App() {
               <img src="/icons/icon-192.png" alt="SubTracker"
                 style={{ width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0 }} />
               <span style={{ fontFamily: "'Heebo', sans-serif", fontWeight: '800',
-                fontSize: '17px', color: '#f1f5f9', letterSpacing: '-0.3px' }}>
+                fontSize: '17px', color: 'var(--text-logo)', letterSpacing: '-0.3px' }}>
                 SubTracker
               </span>
             </div>
           )}
 
           {page !== 'dashboard' ? (
-            <span style={{ fontSize: '15px', fontWeight: '700', color: '#f1f5f9', fontFamily: "'Heebo', sans-serif" }}>
+            <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-1)', fontFamily: "'Heebo', sans-serif" }}>
               {PAGE_TITLES[page]}
             </span>
           ) : (
@@ -148,8 +148,8 @@ export default function App() {
               onClick={() => setPage('settings')}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '10px', padding: '8px', cursor: 'pointer', color: '#94a3b8', flexShrink: 0,
+                background: 'var(--btn-icon-bg)', border: '1px solid var(--btn-icon-border)',
+                borderRadius: '10px', padding: '8px', cursor: 'pointer', color: 'var(--text-3)', flexShrink: 0,
               }}
             >
               <SettingsIcon size={18} />

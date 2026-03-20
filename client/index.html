@@ -16,18 +16,33 @@
     <link rel="manifest" href="/manifest.json" />
 
     <title>מעקב מנויים</title>
+
+    <!-- Early theme: runs before React so no wrong-theme flash -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('theme_v2');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      })();
+    </script>
   </head>
-  <style>html,body{margin:0;padding:0;}</style>
+  <style>
+    html, body { margin: 0; padding: 0; }
+    #preloader {
+      min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      background: #f1f5f9;
+    }
+    html[data-theme="dark"] #preloader { background: #060b14; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
   <body>
     <div id="root">
-      <div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;background:#060b14;">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-          <img src="/icons/icon-192.png" alt="SubTracker" style="width:56px;height:56px;border-radius:16px;"/>
-          <div style="width:32px;height:32px;border:3px solid rgba(99,102,241,0.3);border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-        </div>
+      <div id="preloader">
+        <img src="/icons/icon-192.png" alt="SubTracker" style="width:56px;height:56px;border-radius:16px;"/>
+        <div style="width:32px;height:32px;border:3px solid rgba(99,102,241,0.3);border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
       </div>
     </div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
