@@ -10,7 +10,6 @@ import { Login } from '@/pages/Login';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
-import { useTheme } from '@/contexts/ThemeContext';
 
 type Page = 'dashboard' | 'history' | 'settings' | 'calendar' | 'trials';
 
@@ -29,7 +28,6 @@ const pageVariants = {
 };
 
 export default function App() {
-  useTheme();
   const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
   const [page, setPage] = useState<Page>('dashboard');
   const [fabOpen, setFabOpen] = useState(() => sessionStorage.getItem('fabOpen') === 'true');

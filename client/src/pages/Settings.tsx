@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNotificationPrefs } from '@/hooks/useNotificationPrefs';
 import { api } from '@/lib/api';
 
@@ -64,30 +63,6 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
   );
 }
 
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const btnBase: React.CSSProperties = {
-    padding: '6px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-    cursor: 'pointer', border: 'none', fontFamily: "'Heebo', sans-serif", transition: 'all 0.15s',
-  };
-  return (
-    <div style={{
-      display: 'flex', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '10px', padding: '3px', gap: '2px',
-    }}>
-      <button onClick={() => theme === 'light' && toggleTheme()} style={{
-        ...btnBase,
-        background: theme === 'dark' ? 'rgba(99,102,241,0.3)' : 'transparent',
-        color: theme === 'dark' ? '#a5b4fc' : '#64748b',
-      }}>כהה</button>
-      <button onClick={() => theme === 'dark' && toggleTheme()} style={{
-        ...btnBase,
-        background: theme === 'light' ? 'rgba(99,102,241,0.3)' : 'transparent',
-        color: theme === 'light' ? '#a5b4fc' : '#64748b',
-      }}>בהיר</button>
-    </div>
-  );
-}
 
 
 export function Settings({ onNavigate, onLogout }: Props) {
@@ -115,12 +90,6 @@ export function Settings({ onNavigate, onLogout }: Props) {
 
   return (
     <div style={{ direction: 'rtl', fontFamily: "'Heebo', sans-serif" }}>
-
-      {/* Display */}
-      <Section>
-        <SectionTitle>מצב תצוגה</SectionTitle>
-        <Row label="ערכת נושא" last><ThemeToggle /></Row>
-      </Section>
 
       {/* Notifications */}
       <Section>

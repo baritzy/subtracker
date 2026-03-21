@@ -11,71 +11,23 @@
   color-scheme: only light;
 }
 
-/* ─── Theme CSS variables — LIGHT is the default ─── */
+/* ─── Theme CSS variables — light only ─── */
 :root {
-  --bg-page:         #f1f5f9;
-  --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent);
-  --bg-header:       rgba(241,245,249,0.92);
-  --bg-card:         rgba(0,0,0,0.04);
-  --bg-card-hover:   rgba(0,0,0,0.07);
-  --border:          rgba(0,0,0,0.09);
-  --border-faint:    rgba(0,0,0,0.05);
+  --bg-page:         #eef2ff;
+  --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12), transparent);
+  --bg-header:       rgba(238,242,255,0.92);
+  --bg-card:         rgba(255,255,255,0.75);
+  --bg-card-hover:   rgba(255,255,255,0.9);
+  --border:          rgba(99,102,241,0.12);
+  --border-faint:    rgba(99,102,241,0.07);
   --text-1:          #0f172a;
   --text-2:          #1e293b;
   --text-3:          #475569;
   --text-4:          #64748b;
   --text-logo:       #0f172a;
-  --border-header:   rgba(0,0,0,0.08);
-  --btn-icon-bg:     rgba(0,0,0,0.06);
-  --btn-icon-border: rgba(0,0,0,0.1);
-}
-
-/* ─── When system is dark but user wants light: force light with !important ─── */
-/* Chrome's Auto Dark Theme modifies colors after CSS is applied.              */
-/* Using author !important rules overrides Chrome's UA dark-mode injection.    */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="dark"]) {
-    --bg-page:         #f1f5f9 !important;
-    --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.07), transparent) !important;
-    --bg-header:       rgba(241,245,249,0.92) !important;
-    --bg-card:         rgba(0,0,0,0.04) !important;
-    --bg-card-hover:   rgba(0,0,0,0.07) !important;
-    --border:          rgba(0,0,0,0.09) !important;
-    --border-faint:    rgba(0,0,0,0.05) !important;
-    --text-1:          #0f172a !important;
-    --text-2:          #1e293b !important;
-    --text-3:          #475569 !important;
-    --text-4:          #64748b !important;
-    --text-logo:       #0f172a !important;
-    --border-header:   rgba(0,0,0,0.08) !important;
-    --btn-icon-bg:     rgba(0,0,0,0.06) !important;
-    --btn-icon-border: rgba(0,0,0,0.1) !important;
-    background-color: #f1f5f9 !important;
-    color: #0f172a !important;
-  }
-  html:not([data-theme="dark"]) body {
-    background-color: #f1f5f9 !important;
-    color: #0f172a !important;
-  }
-}
-
-/* ─── Dark mode — only when user explicitly chose dark ─── */
-html[data-theme="dark"] {
-  --bg-page:         #060b14;
-  --bg-gradient:     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.14), transparent);
-  --bg-header:       rgba(6,11,20,0.88);
-  --bg-card:         rgba(255,255,255,0.03);
-  --bg-card-hover:   rgba(255,255,255,0.05);
-  --border:          rgba(255,255,255,0.08);
-  --border-faint:    rgba(255,255,255,0.05);
-  --text-1:          #f1f5f9;
-  --text-2:          #e2e8f0;
-  --text-3:          #94a3b8;
-  --text-4:          #64748b;
-  --text-logo:       #f1f5f9;
-  --border-header:   rgba(255,255,255,0.06);
-  --btn-icon-bg:     rgba(255,255,255,0.05);
-  --btn-icon-border: rgba(255,255,255,0.1);
+  --border-header:   rgba(99,102,241,0.1);
+  --btn-icon-bg:     rgba(99,102,241,0.08);
+  --btn-icon-border: rgba(99,102,241,0.15);
 }
 
 html, body {
@@ -118,15 +70,15 @@ input, select, textarea, button {
 /* Scrollbar (desktop) */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.35); }
 
 /* Subscription card hover (desktop only) */
 @media (hover: hover) {
   .subscription-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    border-color: rgba(255,255,255,0.16) !important;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.15);
+    border-color: rgba(99,102,241,0.2) !important;
   }
 }
 

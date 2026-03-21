@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl" style="color-scheme: only light; background-color: #f1f5f9;">
+<html lang="he" dir="rtl" style="color-scheme: only light; background-color: #eef2ff;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -23,18 +23,10 @@
     <script>
       (function () {
         var h = document.documentElement;
-        var t = localStorage.getItem('theme_v2');
-        if (t === 'dark') {
-          h.setAttribute('data-theme', 'dark');
-          h.style.colorScheme = 'dark';
-          h.style.backgroundColor = '#060b14';
-          h.style.color = '#f1f5f9';
-        } else {
-          // Reinforce: keep the inline style already set on the html tag
-          h.style.colorScheme = 'only light';
-          h.style.backgroundColor = '#f1f5f9';
-          h.style.color = '#0f172a';
-        }
+        h.style.colorScheme = 'only light';
+        h.style.backgroundColor = '#eef2ff';
+        h.style.color = '#0f172a';
+        localStorage.removeItem('theme_v2');
       })();
     </script>
   </head>
@@ -42,16 +34,13 @@
     /* LightningCSS strips 'only' from color-scheme in processed CSS files.
        This inline <style> is NOT processed by Vite/LightningCSS, so 'only' survives. */
     :root { color-scheme: only light; }
-    html[data-theme="dark"] { color-scheme: dark; }
-    html, body { margin: 0; padding: 0; background-color: #f1f5f9; }
-    html[data-theme="dark"], html[data-theme="dark"] body { background-color: #060b14; }
+    html, body { margin: 0; padding: 0; background-color: #eef2ff; }
     #preloader {
       min-height: 100dvh;
       display: flex; align-items: center; justify-content: center;
       flex-direction: column; gap: 16px;
-      background: #f1f5f9;
+      background: #eef2ff;
     }
-    html[data-theme="dark"] #preloader { background: #060b14; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
   <body>
