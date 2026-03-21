@@ -15,19 +15,22 @@ export function Login({ onLogin }: Props) {
     setError(null);
     try {
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const { url } = await api.auth.googleUrl();
 
       if (isMobile) {
-        // Navigate via our server to avoid Gmail app intercepting Google's URL on Android
-        window.location.href = '/api/auth/start';
+        // Open in Chrome Custom Tab (window.open) — avoids Android showing a
+        // "Open with Gmail/Chrome" chooser that happens with direct navigation.
+        // When OAuth completes, the callback redirects to /?token= which the TWA
+        // intercepts (verified origin) and loads in the main window.
+        window.open(url, '_blank');
         return;
       }
 
       // Desktop: open popup. Callback redirects to /?token=, popup stores token
       // and closes itself. We detect completion via the storage event.
-      const { url } = await api.auth.googleUrl();
       const popup = window.open(url, 'google-auth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
-        window.location.href = '/api/auth/start';
+        window.location.href = url;
         return;
       }
 

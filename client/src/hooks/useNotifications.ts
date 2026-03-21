@@ -46,25 +46,26 @@ async function subscribeToPush(): Promise<void> {
   try {
     const reg = await navigator.serviceWorker.ready;
 
-    // Check if already subscribed
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) return; // already subscribed
-
     const { key } = await api.push.vapidKey();
     if (!key) return;
 
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(key),
-    });
+    // Get existing subscription or create a new one
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      });
+    }
 
     const json = sub.toJSON();
     const p256dh = json.keys?.p256dh;
     const auth = json.keys?.auth;
     if (!p256dh || !auth) return;
 
+    // Always sync to server — handles re-login after JWT change
     await api.push.subscribe({ endpoint: sub.endpoint, p256dh, auth });
-    console.log('[Push] Subscribed to Web Push.');
+    console.log('[Push] Push subscription synced to server.');
   } catch (err) {
     console.warn('[Push] Subscribe failed:', err);
   }
