@@ -71,11 +71,27 @@ export function Settings({ onNavigate, onLogout }: Props) {
   const [resetting, setResetting] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+  const [testPushResult, setTestPushResult] = useState<'sent' | 'error' | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
     api.auth.me().then(u => setUserEmail(u.email)).catch(() => {});
   }, []);
+
+  async function handleTestPush() {
+    setTestingPush(true);
+    setTestPushResult(null);
+    try {
+      await api.push.test();
+      setTestPushResult('sent');
+    } catch {
+      setTestPushResult('error');
+    } finally {
+      setTestingPush(false);
+      setTimeout(() => setTestPushResult(null), 4000);
+    }
+  }
 
   async function handleReset() {
     setResetting(true);
@@ -103,6 +119,22 @@ export function Settings({ onNavigate, onLogout }: Props) {
         <Row label="3 שעות לפני" last>
           <Checkbox checked={prefs.h3} onChange={() => setPrefs({ ...prefs, h3: !prefs.h3 })} />
         </Row>
+        <div style={{ marginTop: '14px' }}>
+          <button
+            onClick={handleTestPush}
+            disabled={testingPush}
+            style={{
+              width: '100%', padding: '10px', borderRadius: '10px',
+              background: testPushResult === 'sent' ? 'rgba(16,185,129,0.12)' : testPushResult === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.08)',
+              border: testPushResult === 'sent' ? '1px solid rgba(16,185,129,0.3)' : testPushResult === 'error' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(99,102,241,0.15)',
+              color: testPushResult === 'sent' ? '#10b981' : testPushResult === 'error' ? '#f87171' : '#6366f1',
+              cursor: testingPush ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'Heebo', sans-serif", opacity: testingPush ? 0.6 : 1,
+            }}
+          >
+            {testingPush ? 'שולח...' : testPushResult === 'sent' ? '✓ ההתראה נשלחה!' : testPushResult === 'error' ? 'שגיאה — נסה שוב' : 'שלח התראה ניסיון'}
+          </button>
+        </div>
       </Section>
 
       {/* Account */}

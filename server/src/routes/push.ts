@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { savePushSubscription, deletePushSubscription } from '../services/pushService';
+import { savePushSubscription, deletePushSubscription, sendPushToUser } from '../services/pushService';
 
 const router = Router();
 
@@ -26,6 +26,12 @@ router.delete('/subscribe', requireAuth, async (req: AuthRequest, res) => {
   const { endpoint } = req.body as { endpoint?: string };
   if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
   await deletePushSubscription(endpoint);
+  res.json({ ok: true });
+});
+
+// POST /api/push/test — send a test notification to the logged-in user
+router.post('/test', requireAuth, async (req: AuthRequest, res) => {
+  await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
   res.json({ ok: true });
 });
 

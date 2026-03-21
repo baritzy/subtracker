@@ -77,6 +77,8 @@ export const api = {
       request<{ ok: boolean }>('/push/subscribe', { method: 'POST', body: JSON.stringify(sub) }),
     unsubscribe: (endpoint: string) =>
       request<{ ok: boolean }>('/push/subscribe', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+    test: () =>
+      request<{ ok: boolean }>('/push/test', { method: 'POST' }),
   },
 
   cancelUrl: (service: string) =>
