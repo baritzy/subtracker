@@ -115,7 +115,7 @@ export function Settings({ onNavigate, onLogout }: Props) {
             fontSize: '16px',
           }}>G</div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#e2e8f0' }}>מחובר עם Google</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)' }}>מחובר עם Google</div>
             {userEmail && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{userEmail}</div>}
           </div>
         </div>
