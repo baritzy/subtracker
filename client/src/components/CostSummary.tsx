@@ -81,7 +81,7 @@ function DonutChart({ subscriptions, ilsRate, formatAmount }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
       <div style={{ position: 'relative', width: SIZE, height: SIZE }}>
-        <svg width={SIZE} height={SIZE} style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }}>
+        <svg width={SIZE} height={SIZE} style={{ filter: 'drop-shadow(0 4px 16px rgba(99,102,241,0.25))' }}>
           <defs>
             {arcs.map((arc, i) => (
               <radialGradient key={i} id={`grad-${i}`} cx="35%" cy="30%" r="70%">
@@ -128,10 +128,10 @@ function DonutChart({ subscriptions, ilsRate, formatAmount }: {
           {/* inner shadow */}
           <circle cx={cx} cy={cy} r={INNER_R + 4} fill="url(#inner-shadow)" pointerEvents="none" />
           {/* gap between slices */}
-          <circle cx={cx} cy={cy} r={INNER_R} fill="#0f172a" pointerEvents="none" />
+          <circle cx={cx} cy={cy} r={INNER_R} fill="#eef2ff" pointerEvents="none" />
           {/* inner ring highlight */}
           <circle cx={cx} cy={cy} r={INNER_R} fill="none"
-            stroke="rgba(255,255,255,0.08)" strokeWidth="1" pointerEvents="none" />
+            stroke="rgba(99,102,241,0.15)" strokeWidth="1" pointerEvents="none" />
         </svg>
 
         {/* Center label */}
@@ -146,7 +146,7 @@ function DonutChart({ subscriptions, ilsRate, formatAmount }: {
               <div style={{ fontSize: '9px', color: hoveredItem.color, fontWeight: '700', lineHeight: 1.2, wordBreak: 'break-word' }}>
                 {hoveredItem.sub.company_name}
               </div>
-              <div style={{ fontSize: '11px', color: '#f8fafc', fontWeight: '800', fontFamily: '"JetBrains Mono", monospace', marginTop: '2px' }}>
+              <div style={{ fontSize: '11px', color: '#3730a3', fontWeight: '800', fontFamily: '"JetBrains Mono", monospace', marginTop: '2px' }}>
                 {formatAmount(hoveredItem.monthly)}
               </div>
               <div style={{ fontSize: '9px', color: '#64748b', marginTop: '1px' }}>
@@ -156,7 +156,7 @@ function DonutChart({ subscriptions, ilsRate, formatAmount }: {
           ) : (
             <>
               <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>חודשי</div>
-              <div style={{ fontSize: '13px', color: '#f8fafc', fontWeight: '800', fontFamily: '"JetBrains Mono", monospace' }}>
+              <div style={{ fontSize: '13px', color: '#3730a3', fontWeight: '800', fontFamily: '"JetBrains Mono", monospace' }}>
                 {formatAmount(total)}
               </div>
             </>
@@ -185,7 +185,7 @@ function DonutChart({ subscriptions, ilsRate, formatAmount }: {
               transition: 'opacity 0.15s',
             }} />
             <span style={{
-              fontSize: '10px', color: hovered === i ? '#f8fafc' : '#94a3b8',
+              fontSize: '10px', color: hovered === i ? '#3730a3' : '#64748b',
               fontWeight: hovered === i ? '700' : '400',
               transition: 'all 0.15s', whiteSpace: 'nowrap',
             }}>
@@ -218,8 +218,8 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
       {/* Currency toggle */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
         <div style={{
-          display: 'inline-flex', background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '3px',
+          display: 'inline-flex', background: 'var(--bg-card)',
+          border: '1px solid var(--border)', borderRadius: '10px', padding: '3px',
         }}>
           {(['USD', 'ILS'] as const).map(c => (
             <button
@@ -245,8 +245,8 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
           borderRadius: '16px', padding: '16px',
           position: 'relative', overflow: 'hidden',
         }}
@@ -265,9 +265,9 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
               flex: 1, padding: '6px 4px', borderRadius: '8px', border: 'none',
               cursor: 'pointer', fontSize: '11px', fontWeight: '700',
               fontFamily: "'Heebo', sans-serif",
-              background: planFilter === p ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
-              color: planFilter === p ? '#a5b4fc' : '#475569',
-              outline: planFilter === p ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.06)',
+              background: planFilter === p ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.05)',
+              color: planFilter === p ? '#4338ca' : '#475569',
+              outline: planFilter === p ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(99,102,241,0.1)',
               transition: 'all 0.15s',
             }}>
               {p === 'all' ? 'סה"כ' : p === 'personal' ? 'פרטי' : 'משפחתי'}
@@ -282,7 +282,7 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
             <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>הוצאה</span>
           </div>
           <div style={{
-            display: 'inline-flex', background: 'rgba(255,255,255,0.06)',
+            display: 'inline-flex', background: 'rgba(99,102,241,0.08)',
             borderRadius: '8px', padding: '2px',
           }}>
             {(['monthly', 'yearly'] as const).map(c => (
@@ -302,7 +302,7 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
 
         {/* Amount */}
         <div style={{
-          fontSize: '28px', fontWeight: '800', color: '#f8fafc',
+          fontSize: '28px', fontWeight: '800', color: '#3730a3',
           fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-1px', lineHeight: 1,
         }}>
           {formatAmount(cycle === 'monthly' ? monthly : yearly)}
@@ -315,7 +315,7 @@ export function CostSummary({ subscriptions, planFilter, onPlanFilter }: Props) 
 
         {/* Divider */}
         {active.length > 0 && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }} />
+          <div style={{ borderTop: '1px solid var(--border-faint)', marginBottom: '16px' }} />
         )}
 
         {/* Donut */}

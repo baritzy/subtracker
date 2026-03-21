@@ -122,8 +122,8 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06, duration: 0.22 }}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: `1px solid ${expanded ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)'}`,
+        background: 'var(--bg-card)',
+        border: `1px solid ${expanded ? 'rgba(99,102,241,0.25)' : 'var(--border)'}`,
         borderRadius: '16px',
         overflow: 'hidden',
         transition: 'border-color 0.2s',
@@ -155,7 +155,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
         {/* Name + service */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontWeight: '700', fontSize: '14px', color: '#f1f5f9', lineHeight: 1.2 }}>
+            <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-1)', lineHeight: 1.2 }}>
               {sub.company_name}
             </span>
             {!!sub.is_trial && (
@@ -177,7 +177,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
 
         {/* Cost */}
         <div style={{
-          fontSize: '15px', fontWeight: '800', color: '#f8fafc',
+          fontSize: '15px', fontWeight: '800', color: '#3730a3',
           fontFamily: '"JetBrains Mono", monospace', flexShrink: 0,
         }}>
           {formattedCost}
@@ -214,7 +214,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
           >
             <div style={{
               padding: '0 16px 16px',
-              borderTop: '1px solid rgba(255,255,255,0.07)',
+              borderTop: '1px solid var(--border-faint)',
               paddingTop: '14px',
             }}>
               {/* Top color accent */}
@@ -254,7 +254,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
                     <div
                       style={{
                         position: 'absolute', insetInlineEnd: 0, top: '36px', zIndex: 50,
-                        background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)',
+                        background: '#fff', border: '1px solid var(--border)',
                         borderRadius: '12px', padding: '6px', minWidth: '150px',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                       }}
@@ -310,7 +310,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
                   <span style={{ fontSize: '11px', color: '#475569' }}>מתחדש {formatRenewalDate(sub.renewal_date)}</span>
                   <span style={{ fontSize: '11px', fontWeight: '700', color: urgencyColor }}>{daysLabel}</span>
                 </div>
-                <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ height: '3px', background: 'rgba(99,102,241,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
                   <motion.div
                     style={{ height: '100%', background: urgencyColor, borderRadius: '2px' }}
                     initial={{ width: 0 }}
@@ -378,7 +378,7 @@ export function SubscriptionCard({ sub, onEdit, onCancel, onUpdate, index = 0 }:
               ) : noCancelUrl ? (
                 <div style={{
                   padding: '11px', borderRadius: '10px', textAlign: 'center',
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
                   fontSize: '12px', color: '#475569', fontFamily: "'Heebo', sans-serif",
                 }}>
                   לא הוגדר עמוד ביטול מנוי
@@ -454,10 +454,10 @@ function MenuBtn({ children, onClick, danger }: {
       style={{
         display: 'flex', alignItems: 'center', gap: '8px',
         width: '100%', padding: '10px 12px', background: 'none', border: 'none',
-        cursor: 'pointer', color: danger ? '#ef4444' : '#cbd5e1',
+        cursor: 'pointer', color: danger ? '#ef4444' : 'var(--text-2)',
         fontSize: '14px', borderRadius: '8px', fontFamily: "'Heebo', sans-serif",
       }}
-      onPointerEnter={e => (e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.06)')}
+      onPointerEnter={e => (e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.08)')}
       onPointerLeave={e => (e.currentTarget.style.background = 'none')}
     >
       {children}
