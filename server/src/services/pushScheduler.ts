@@ -1,76 +1,115 @@
 import { pool } from '../db/database';
-import { getAllActiveSubscriptionsAllUsers } from './subscriptionService';
 import { sendPushToUser } from './pushService';
 
 const OFFSETS = [
-  { key: '7d',  hours: 168, label: 'בעוד 7 ימים' },
-  { key: '24h', hours: 24,  label: 'מחר' },
-  { key: '3h',  hours: 3,   label: 'בעוד 3 שעות' },
+  { key: '7d',  hours: 7 * 24, label: 'בעוד 7 ימים' },
+  { key: '24h', hours: 24,     label: 'מחר' },
+  { key: '3h',  hours: 3,      label: 'בעוד 3 שעות' },
 ] as const;
 
-// Window: ±15 minutes around the exact offset
-const WINDOW_MS = 15 * 60 * 1000;
-
-async function alreadySent(subscriptionId: number, offsetKey: string): Promise<boolean> {
-  const today = new Date().toISOString().split('T')[0];
-  const { rowCount } = await pool.query(
-    'SELECT 1 FROM push_notifications_sent WHERE subscription_id = $1 AND offset_key = $2 AND notification_date = $3',
-    [subscriptionId, offsetKey, today],
-  );
-  return (rowCount ?? 0) > 0;
+// Parse "YYYY-MM-DD" as midnight Israel time (UTC+2)
+function parseRenewalDate(dateStr: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) - 2 * 60 * 60 * 1000;
 }
 
-async function markSent(subscriptionId: number, offsetKey: string): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
-  await pool.query(
-    'INSERT INTO push_notifications_sent (subscription_id, offset_key, notification_date) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-    [subscriptionId, offsetKey, today],
-  );
-}
-
-async function checkAndSendPushNotifications(): Promise<void> {
-  const subs = await getAllActiveSubscriptionsAllUsers();
+// Schedule notifications for a subscription — call on create or update
+export async function scheduleNotifications(
+  subscriptionId: number,
+  userId: number,
+  renewalDate: string,
+): Promise<void> {
+  const renewalMs = parseRenewalDate(renewalDate);
   const now = Date.now();
 
-  for (const sub of subs) {
-    if (!sub.renewal_date) continue;
-    const renewalTs = new Date(sub.renewal_date).getTime();
+  // Remove existing unsent notifications for this subscription
+  await pool.query(
+    'DELETE FROM scheduled_notifications WHERE subscription_id = $1 AND NOT sent',
+    [subscriptionId],
+  );
 
-    for (const offset of OFFSETS) {
-      const targetMs = offset.hours * 60 * 60 * 1000;
-      const diff = renewalTs - now;
-
-      // Check if we're within ±15 minutes of the target offset
-      if (Math.abs(diff - targetMs) > WINDOW_MS) continue;
-
-      // Skip if already sent today
-      if (await alreadySent(sub.id, offset.key)) continue;
-
-      // Get user_id from subscription
-      const userRes = await pool.query<{ user_id: number }>(
-        'SELECT user_id FROM subscriptions WHERE id = $1',
-        [sub.id],
+  // Insert future notification times
+  for (const offset of OFFSETS) {
+    const scheduledAt = renewalMs - offset.hours * 60 * 60 * 1000;
+    if (scheduledAt > now) {
+      await pool.query(
+        `INSERT INTO scheduled_notifications (subscription_id, user_id, offset_key, scheduled_at)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (subscription_id, offset_key)
+         DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at, sent = FALSE`,
+        [subscriptionId, userId, offset.key, new Date(scheduledAt)],
       );
-      const userId = userRes.rows[0]?.user_id;
-      if (!userId) continue;
-
-      await markSent(sub.id, offset.key);
-      await sendPushToUser(
-        userId,
-        'SubTracker',
-        `${sub.company_name} מתחדש ${offset.label}`,
-      );
-      console.log(`[Push] Sent "${offset.key}" notification for "${sub.company_name}" to user ${userId}`);
     }
   }
 }
 
+// Remove all unsent notifications for a subscription — call on delete or cancel
+export async function cancelNotifications(subscriptionId: number): Promise<void> {
+  await pool.query(
+    'DELETE FROM scheduled_notifications WHERE subscription_id = $1 AND NOT sent',
+    [subscriptionId],
+  );
+}
+
+// On startup: schedule notifications for active subscriptions that have none yet
+async function backfillScheduledNotifications(): Promise<void> {
+  const { rows } = await pool.query<{ id: number; user_id: number; renewal_date: string }>(`
+    SELECT s.id, s.user_id, s.renewal_date
+    FROM subscriptions s
+    WHERE s.status = 'active'
+      AND s.renewal_date IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM scheduled_notifications sn
+        WHERE sn.subscription_id = s.id AND NOT sn.sent
+      )
+  `);
+
+  for (const row of rows) {
+    await scheduleNotifications(row.id, row.user_id, row.renewal_date);
+  }
+
+  if (rows.length > 0) {
+    console.log(`[Push] Backfilled notifications for ${rows.length} subscriptions.`);
+  }
+}
+
+async function sendDueNotifications(): Promise<void> {
+  const { rows } = await pool.query<{
+    id: number;
+    user_id: number;
+    offset_key: string;
+    company_name: string;
+  }>(`
+    SELECT sn.id, sn.user_id, sn.offset_key, s.company_name
+    FROM scheduled_notifications sn
+    JOIN subscriptions s ON s.id = sn.subscription_id
+    WHERE sn.scheduled_at <= NOW()
+      AND NOT sn.sent
+      AND s.status = 'active'
+  `);
+
+  for (const row of rows) {
+    const label = OFFSETS.find(o => o.key === row.offset_key)?.label ?? '';
+    try {
+      await sendPushToUser(row.user_id, 'SubTracker', `${row.company_name} מתחדש ${label}`);
+      console.log(`[Push] Sent "${row.offset_key}" for "${row.company_name}" → user ${row.user_id}`);
+    } catch (err) {
+      console.error(`[Push] Failed to send notification id=${row.id}:`, err);
+    }
+    await pool.query('UPDATE scheduled_notifications SET sent = TRUE WHERE id = $1', [row.id]);
+  }
+}
+
 export function startPushScheduler(): void {
-  // Run every 10 minutes
-  const INTERVAL_MS = 10 * 60 * 1000;
-  checkAndSendPushNotifications().catch(err => console.error('[Push] Scheduler error:', err));
+  const INTERVAL_MS = 60 * 1000; // every minute
+
+  backfillScheduledNotifications()
+    .then(() => sendDueNotifications())
+    .catch(err => console.error('[Push] Startup error:', err));
+
   setInterval(() => {
-    checkAndSendPushNotifications().catch(err => console.error('[Push] Scheduler error:', err));
+    sendDueNotifications().catch(err => console.error('[Push] Scheduler error:', err));
   }, INTERVAL_MS);
-  console.log('[Push] Scheduler started — running every 10 minutes.');
+
+  console.log('[Push] Scheduler started — running every minute.');
 }

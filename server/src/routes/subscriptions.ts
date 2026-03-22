@@ -13,6 +13,7 @@ import { getInvoicesForSubscription } from '../services/invoiceService';
 import { lookupCancelUrl } from '../services/cancelUrlService';
 import { lookupPlansUrl } from '../services/plansUrlService';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { scheduleNotifications, cancelNotifications } from '../services/pushScheduler';
 
 const router = Router();
 
@@ -109,6 +110,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     plan_type, plan_type_custom, currency, logo_url,
     is_trial: !!is_trial, trial_end_date,
   }, req.userId!);
+  await scheduleNotifications(sub.id, req.userId!, renewal_date);
   return res.status(201).json(sub);
 });
 
@@ -117,6 +119,9 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const updated = await updateSubscription(Number(req.params.id), req.body);
+  if (updated && updated.status === 'active' && updated.renewal_date) {
+    await scheduleNotifications(updated.id, req.userId!, updated.renewal_date);
+  }
   return res.json(updated);
 });
 
@@ -124,6 +129,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 router.post('/:id/cancel', async (req: AuthRequest, res: Response) => {
   const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+  await cancelNotifications(Number(req.params.id));
   const updated = await cancelSubscription(Number(req.params.id));
   return res.json(updated);
 });
@@ -140,6 +146,7 @@ router.post('/:id/confirm', async (req: AuthRequest, res: Response) => {
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const sub = await getSubscriptionById(Number(req.params.id), req.userId!);
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+  await cancelNotifications(Number(req.params.id));
   await deleteSubscription(Number(req.params.id));
   return res.status(204).send();
 });
