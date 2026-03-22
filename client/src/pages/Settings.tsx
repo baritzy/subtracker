@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNotificationPrefs } from '@/hooks/useNotificationPrefs';
+import { subscribeToPush } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
 
 interface Props {
@@ -72,12 +73,43 @@ export function Settings({ onNavigate, onLogout }: Props) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
-  const [testPushResult, setTestPushResult] = useState<'sent' | 'error' | null>(null);
+  const [testPushResult, setTestPushResult] = useState<'sent' | 'no_sub' | 'error' | null>(null);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [activating, setActivating] = useState(false);
+  const [activateResult, setActivateResult] = useState<'ok' | 'denied' | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
     api.auth.me().then(u => setUserEmail(u.email)).catch(() => {});
+    if (!('Notification' in window)) {
+      setNotifPermission('unsupported');
+    } else {
+      setNotifPermission(Notification.permission);
+    }
   }, []);
+
+  async function handleActivateNotifications() {
+    setActivating(true);
+    setActivateResult(null);
+    try {
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      setNotifPermission(permission);
+      if (permission === 'granted') {
+        await subscribeToPush();
+        setActivateResult('ok');
+      } else {
+        setActivateResult('denied');
+      }
+    } catch {
+      setActivateResult('denied');
+    } finally {
+      setActivating(false);
+      setTimeout(() => setActivateResult(null), 5000);
+    }
+  }
 
   async function handleTestPush() {
     setTestingPush(true);
@@ -85,11 +117,12 @@ export function Settings({ onNavigate, onLogout }: Props) {
     try {
       await api.push.test();
       setTestPushResult('sent');
-    } catch {
-      setTestPushResult('error');
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : '';
+      setTestPushResult(msg.includes('no_subscription') ? 'no_sub' : 'error');
     } finally {
       setTestingPush(false);
-      setTimeout(() => setTestPushResult(null), 4000);
+      setTimeout(() => setTestPushResult(null), 5000);
     }
   }
 
@@ -119,21 +152,45 @@ export function Settings({ onNavigate, onLogout }: Props) {
         <Row label="3 שעות לפני" last>
           <Checkbox checked={prefs.h3} onChange={() => setPrefs({ ...prefs, h3: !prefs.h3 })} />
         </Row>
-        <div style={{ marginTop: '14px' }}>
-          <button
-            onClick={handleTestPush}
-            disabled={testingPush}
-            style={{
-              width: '100%', padding: '10px', borderRadius: '10px',
-              background: testPushResult === 'sent' ? 'rgba(16,185,129,0.12)' : testPushResult === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.08)',
-              border: testPushResult === 'sent' ? '1px solid rgba(16,185,129,0.3)' : testPushResult === 'error' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(99,102,241,0.15)',
-              color: testPushResult === 'sent' ? '#10b981' : testPushResult === 'error' ? '#f87171' : '#6366f1',
-              cursor: testingPush ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 600,
-              fontFamily: "'Heebo', sans-serif", opacity: testingPush ? 0.6 : 1,
-            }}
-          >
-            {testingPush ? 'שולח...' : testPushResult === 'sent' ? '✓ ההתראה נשלחה!' : testPushResult === 'error' ? 'שגיאה — נסה שוב' : 'שלח התראה ניסיון'}
-          </button>
+        <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Activate / status button */}
+          {notifPermission !== 'unsupported' && (
+            <button
+              onClick={notifPermission !== 'denied' ? handleActivateNotifications : undefined}
+              disabled={activating}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '10px',
+                background: notifPermission === 'granted' && !activateResult ? 'rgba(16,185,129,0.08)' : activateResult === 'ok' ? 'rgba(16,185,129,0.12)' : activateResult === 'denied' || notifPermission === 'denied' ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)',
+                border: notifPermission === 'granted' && !activateResult ? '1px solid rgba(16,185,129,0.2)' : activateResult === 'ok' ? '1px solid rgba(16,185,129,0.3)' : activateResult === 'denied' || notifPermission === 'denied' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(99,102,241,0.15)',
+                color: notifPermission === 'granted' && !activateResult ? '#10b981' : activateResult === 'ok' ? '#10b981' : activateResult === 'denied' || notifPermission === 'denied' ? '#f87171' : '#6366f1',
+                cursor: activating || notifPermission === 'denied' ? 'default' : 'pointer',
+                fontSize: '13px', fontWeight: 600, fontFamily: "'Heebo', sans-serif", opacity: activating ? 0.6 : 1,
+              }}
+            >
+              {activating ? 'מפעיל...' :
+               activateResult === 'ok' ? '✓ התראות הופעלו!' :
+               notifPermission === 'granted' ? '✓ התראות מופעלות — לחץ לרענון' :
+               notifPermission === 'denied' ? '⛔ חסומות — אפשר ידנית בהגדרות הדפדפן' :
+               'הפעל התראות'}
+            </button>
+          )}
+          {/* Test push button — only when granted */}
+          {notifPermission === 'granted' && (
+            <button
+              onClick={handleTestPush}
+              disabled={testingPush}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '10px',
+                background: testPushResult === 'sent' ? 'rgba(16,185,129,0.12)' : testPushResult === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.08)',
+                border: testPushResult === 'sent' ? '1px solid rgba(16,185,129,0.3)' : testPushResult === 'error' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(99,102,241,0.15)',
+                color: testPushResult === 'sent' ? '#10b981' : testPushResult === 'error' ? '#f87171' : '#6366f1',
+                cursor: testingPush ? 'wait' : 'pointer', fontSize: '13px', fontWeight: 600,
+                fontFamily: "'Heebo', sans-serif", opacity: testingPush ? 0.6 : 1,
+              }}
+            >
+              {testingPush ? 'שולח...' : testPushResult === 'sent' ? '✓ ההתראה נשלחה!' : testPushResult === 'no_sub' ? '⚠ לחץ "הפעל התראות" קודם' : testPushResult === 'error' ? 'שגיאה — נסה שוב' : 'שלח התראה ניסיון'}
+            </button>
+          )}
         </div>
       </Section>
 

@@ -41,7 +41,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 // Subscribe to Web Push and send subscription to server
-async function subscribeToPush(): Promise<void> {
+export async function subscribeToPush(): Promise<void> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;

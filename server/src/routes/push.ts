@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { savePushSubscription, deletePushSubscription, sendPushToUser } from '../services/pushService';
+import { savePushSubscription, deletePushSubscription, sendPushToUser, getPushSubscriptionsForUser } from '../services/pushService';
 
 const router = Router();
 
@@ -31,6 +31,10 @@ router.delete('/subscribe', requireAuth, async (req: AuthRequest, res) => {
 
 // POST /api/push/test — send a test notification to the logged-in user
 router.post('/test', requireAuth, async (req: AuthRequest, res) => {
+  const subs = await getPushSubscriptionsForUser(req.userId!);
+  if (subs.length === 0) {
+    return res.status(404).json({ error: 'no_subscription' });
+  }
   await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
   res.json({ ok: true });
 });
