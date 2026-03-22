@@ -155,24 +155,39 @@ export function Settings({ onNavigate, onLogout }: Props) {
         <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Activate / status button */}
           {notifPermission !== 'unsupported' && (
-            <button
-              onClick={notifPermission !== 'denied' ? handleActivateNotifications : undefined}
-              disabled={activating}
-              style={{
-                width: '100%', padding: '10px', borderRadius: '10px',
-                background: notifPermission === 'granted' && !activateResult ? 'rgba(16,185,129,0.08)' : activateResult === 'ok' ? 'rgba(16,185,129,0.12)' : activateResult === 'denied' || notifPermission === 'denied' ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)',
-                border: notifPermission === 'granted' && !activateResult ? '1px solid rgba(16,185,129,0.2)' : activateResult === 'ok' ? '1px solid rgba(16,185,129,0.3)' : activateResult === 'denied' || notifPermission === 'denied' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(99,102,241,0.15)',
-                color: notifPermission === 'granted' && !activateResult ? '#10b981' : activateResult === 'ok' ? '#10b981' : activateResult === 'denied' || notifPermission === 'denied' ? '#f87171' : '#6366f1',
-                cursor: activating || notifPermission === 'denied' ? 'default' : 'pointer',
-                fontSize: '13px', fontWeight: 600, fontFamily: "'Heebo', sans-serif", opacity: activating ? 0.6 : 1,
-              }}
-            >
-              {activating ? 'מפעיל...' :
-               activateResult === 'ok' ? '✓ התראות הופעלו!' :
-               notifPermission === 'granted' ? '✓ התראות מופעלות — לחץ לרענון' :
-               notifPermission === 'denied' ? '⛔ חסומות — אפשר ידנית בהגדרות הדפדפן' :
-               'הפעל התראות'}
-            </button>
+            <>
+              <button
+                onClick={handleActivateNotifications}
+                disabled={activating}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: '10px',
+                  background: notifPermission === 'granted' && !activateResult ? 'rgba(16,185,129,0.08)' : activateResult === 'ok' ? 'rgba(16,185,129,0.12)' : activateResult === 'denied' || notifPermission === 'denied' ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)',
+                  border: notifPermission === 'granted' && !activateResult ? '1px solid rgba(16,185,129,0.2)' : activateResult === 'ok' ? '1px solid rgba(16,185,129,0.3)' : activateResult === 'denied' || notifPermission === 'denied' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(99,102,241,0.15)',
+                  color: notifPermission === 'granted' && !activateResult ? '#10b981' : activateResult === 'ok' ? '#10b981' : activateResult === 'denied' || notifPermission === 'denied' ? '#f87171' : '#6366f1',
+                  cursor: activating ? 'wait' : 'pointer',
+                  fontSize: '13px', fontWeight: 600, fontFamily: "'Heebo', sans-serif", opacity: activating ? 0.6 : 1,
+                }}
+              >
+                {activating ? 'מפעיל...' :
+                 activateResult === 'ok' ? '✓ התראות הופעלו!' :
+                 notifPermission === 'granted' ? '✓ התראות מופעלות — לחץ לרענון' :
+                 notifPermission === 'denied' ? '⛔ התראות חסומות בדפדפן — לחץ לפתרון' :
+                 'הפעל התראות'}
+              </button>
+              {notifPermission === 'denied' && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
+                  borderRadius: '10px', padding: '12px 14px', fontSize: '12px',
+                  color: '#94a3b8', lineHeight: 1.7, direction: 'rtl',
+                }}>
+                  <div style={{ fontWeight: 700, color: '#f87171', marginBottom: '6px' }}>כיצד לאפשר:</div>
+                  <div>1. פתח את אפליקציית <strong>כרום</strong></div>
+                  <div>2. תפריט (⋮) ← הגדרות ← הגדרות אתר</div>
+                  <div>3. התראות ← מצא את האתר הזה ← <strong>אפשר</strong></div>
+                  <div style={{ marginTop: '6px', color: '#64748b' }}>לאחר מכן חזור לאפליקציה ולחץ שוב</div>
+                </div>
+              )}
+            </>
           )}
           {/* Test push button — only when granted */}
           {notifPermission === 'granted' && (
