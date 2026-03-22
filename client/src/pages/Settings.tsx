@@ -77,6 +77,7 @@ export function Settings({ onNavigate, onLogout }: Props) {
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [activating, setActivating] = useState(false);
   const [activateResult, setActivateResult] = useState<'ok' | 'denied' | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -87,6 +88,28 @@ export function Settings({ onNavigate, onLogout }: Props) {
       setNotifPermission(Notification.permission);
     }
   }, []);
+
+  async function handleDebug() {
+    const lines: string[] = [];
+    lines.push(`permission: ${('Notification' in window) ? Notification.permission : 'NO API'}`);
+    lines.push(`SW: ${'serviceWorker' in navigator ? 'yes' : 'no'}`);
+    lines.push(`PushMgr: ${'PushManager' in window ? 'yes' : 'no'}`);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      lines.push(`SW ready: yes`);
+      const sub = await reg.pushManager.getSubscription();
+      lines.push(`subscription: ${sub ? sub.endpoint.slice(-20) : 'none'}`);
+    } catch (e) {
+      lines.push(`SW error: ${e}`);
+    }
+    try {
+      const { key } = await api.push.vapidKey();
+      lines.push(`VAPID: ${key ? key.slice(0, 10) + '...' : 'missing'}`);
+    } catch {
+      lines.push(`VAPID: error`);
+    }
+    setDebugInfo(lines.join('\n'));
+  }
 
   async function handleActivateNotifications() {
     setActivating(true);
@@ -139,6 +162,23 @@ export function Settings({ onNavigate, onLogout }: Props) {
 
   return (
     <div style={{ direction: 'rtl', fontFamily: "'Heebo', sans-serif" }}>
+
+      {/* Debug */}
+      <Section>
+        <button onClick={handleDebug} style={{
+          width: '100%', padding: '10px', borderRadius: '10px',
+          background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)',
+          color: '#6366f1', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+          fontFamily: "'Heebo', sans-serif",
+        }}>🔍 בדוק מצב התראות</button>
+        {debugInfo && (
+          <pre style={{
+            marginTop: '10px', padding: '10px', borderRadius: '8px',
+            background: 'rgba(0,0,0,0.15)', fontSize: '11px', color: '#94a3b8',
+            whiteSpace: 'pre-wrap', fontFamily: 'monospace', direction: 'ltr',
+          }}>{debugInfo}</pre>
+        )}
+      </Section>
 
       {/* Notifications */}
       <Section>
