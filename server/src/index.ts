@@ -29,6 +29,21 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
+
+  // Digital Asset Links — required for TWA verification and push notification delegation
+  app.get('/.well-known/assetlinks.json', (_req, res) => {
+    res.json([{
+      relation: ['delegate_permission/common.handle_all_urls', 'delegate_permission/common.get_login_creds'],
+      target: {
+        namespace: 'android_app',
+        package_name: 'com.onrender.subtracker_nm4n.twa',
+        sha256_cert_fingerprints: [
+          '1E:08:A9:03:AE:F9:C3:A7:21:51:0B:64:EC:76:4D:01:D3:D0:94:EB:95:41:61:B6:25:44:EA:8F:18:7B:59:53',
+        ],
+      },
+    }]);
+  });
+
   app.use(express.static(clientDist));
   app.get('*', (req, res) => {
     // Don't serve index.html for asset requests — return 404 so the browser
