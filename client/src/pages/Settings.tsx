@@ -115,10 +115,10 @@ export function Settings({ onNavigate, onLogout }: Props) {
     setActivating(true);
     setActivateResult(null);
     try {
-      let permission = Notification.permission;
-      if (permission === 'default') {
-        permission = await Notification.requestPermission();
-      }
+      // Always call requestPermission — on some Android/Chrome versions
+      // this returns 'granted' even when the cached state shows 'denied',
+      // if the user has manually allowed the site in Chrome settings.
+      const permission = await Notification.requestPermission();
       setNotifPermission(permission);
       if (permission === 'granted') {
         await subscribeToPush();
