@@ -124,23 +124,16 @@ function runImmediateCheck(subscriptions: Subscription[]) {
 export function useNotifications(subscriptions: Subscription[]) {
   const permissionRequested = useRef(false);
 
-  // Request permission on mount, then subscribe to Web Push
+  // On mount: if permission already granted, sync subscription silently (no dialog)
   useEffect(() => {
     if (permissionRequested.current) return;
     permissionRequested.current = true;
-
     if (!('Notification' in window)) return;
-
-    async function requestAndSubscribe() {
-      let permission = Notification.permission;
-      if (permission === 'default') {
-        permission = await Notification.requestPermission();
-      }
-      if (permission === 'granted') {
-        await subscribeToPush();
-      }
+    if (Notification.permission === 'granted') {
+      void subscribeToPush();
     }
-    void requestAndSubscribe();
+    // Do NOT call requestPermission() here — Chrome requires a user gesture.
+    // The "הפעל התראות" button in Settings handles the request.
   }, []);
 
   // Send subscriptions to SW and run immediate check when subscriptions change
