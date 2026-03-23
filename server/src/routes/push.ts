@@ -29,6 +29,25 @@ router.delete('/subscribe', requireAuth, async (req: AuthRequest, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/push/status — debug: show scheduled notifications and push subscriptions
+router.get('/status', requireAuth, async (req: AuthRequest, res) => {
+  const { pool } = await import('../db/database');
+  const subs = await getPushSubscriptionsForUser(req.userId!);
+  const { rows: scheduled } = await pool.query(
+    `SELECT sn.id, s.company_name, sn.offset_key, sn.scheduled_at, sn.sent
+     FROM scheduled_notifications sn
+     JOIN subscriptions s ON s.id = sn.subscription_id
+     WHERE sn.user_id = $1
+     ORDER BY sn.scheduled_at`,
+    [req.userId!],
+  );
+  res.json({
+    push_subscriptions: subs.length,
+    scheduled_notifications: scheduled,
+    now: new Date().toISOString(),
+  });
+});
+
 // POST /api/push/test — send a test notification to the logged-in user
 router.post('/test', requireAuth, async (req: AuthRequest, res) => {
   const subs = await getPushSubscriptionsForUser(req.userId!);
