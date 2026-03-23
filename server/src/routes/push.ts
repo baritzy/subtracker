@@ -1,8 +1,39 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { savePushSubscription, deletePushSubscription, sendPushToUser, getPushSubscriptionsForUser } from '../services/pushService';
+import { pool } from '../db/database';
 
 const router = Router();
+
+// GET /api/push/diag — public diagnostic (counts only, no user data)
+router.get('/diag', async (_req, res) => {
+  try {
+    const tableCheck = await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'scheduled_notifications') AS exists`,
+    );
+    const tableExists = tableCheck.rows[0].exists;
+
+    if (!tableExists) {
+      return res.json({ table: false, scheduled: 0, push_subs: 0, due_unsent: 0, now: new Date().toISOString() });
+    }
+
+    const [sched, due, subs] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM scheduled_notifications'),
+      pool.query(`SELECT COUNT(*) FROM scheduled_notifications WHERE scheduled_at <= NOW() AND NOT sent`),
+      pool.query('SELECT COUNT(*) FROM push_subscriptions'),
+    ]);
+
+    return res.json({
+      table: true,
+      scheduled: Number(sched.rows[0].count),
+      due_unsent: Number(due.rows[0].count),
+      push_subs: Number(subs.rows[0].count),
+      now: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: String(err) });
+  }
+});
 
 // GET /api/push/vapid-public — return VAPID public key to client
 router.get('/vapid-public', (_req, res) => {
