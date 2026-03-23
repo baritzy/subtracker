@@ -17,17 +17,21 @@ router.get('/diag', async (_req, res) => {
       return res.json({ table: false, scheduled: 0, push_subs: 0, due_unsent: 0, now: new Date().toISOString() });
     }
 
-    const [sched, due, subs] = await Promise.all([
+    const [sched, due, sent, subs, next] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM scheduled_notifications'),
       pool.query(`SELECT COUNT(*) FROM scheduled_notifications WHERE scheduled_at <= NOW() AND NOT sent`),
+      pool.query(`SELECT COUNT(*) FROM scheduled_notifications WHERE sent = TRUE`),
       pool.query('SELECT COUNT(*) FROM push_subscriptions'),
+      pool.query(`SELECT scheduled_at, offset_key FROM scheduled_notifications WHERE NOT sent ORDER BY scheduled_at LIMIT 3`),
     ]);
 
     return res.json({
       table: true,
       scheduled: Number(sched.rows[0].count),
       due_unsent: Number(due.rows[0].count),
+      already_sent: Number(sent.rows[0].count),
       push_subs: Number(subs.rows[0].count),
+      next_upcoming: next.rows,
       now: new Date().toISOString(),
     });
   } catch (err) {
