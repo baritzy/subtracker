@@ -15,12 +15,15 @@ export async function savePushSubscription(
   p256dh: string,
   auth: string,
 ): Promise<void> {
+  // Remove ALL old subscriptions for this user — only keep the latest device
+  await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1', [userId]);
   await pool.query(
     `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (endpoint) DO UPDATE SET p256dh = $3, auth = $4, user_id = $1`,
     [userId, endpoint, p256dh, auth],
   );
+  console.log(`[Push] Saved fresh subscription for user ${userId}, endpoint ...${endpoint.slice(-30)}`);
 }
 
 export async function deletePushSubscription(endpoint: string): Promise<void> {
