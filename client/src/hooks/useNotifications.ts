@@ -49,23 +49,23 @@ export async function subscribeToPush(): Promise<void> {
     const { key } = await api.push.vapidKey();
     if (!key) return;
 
-    // Get existing subscription or create a new one
+    // Always get a fresh subscription — old ones may be stale after reinstall
     let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key),
-      });
+    if (sub) {
+      try { await sub.unsubscribe(); } catch { /* ignore */ }
     }
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
 
     const json = sub.toJSON();
     const p256dh = json.keys?.p256dh;
     const auth = json.keys?.auth;
     if (!p256dh || !auth) return;
 
-    // Always sync to server — handles re-login after JWT change
     await api.push.subscribe({ endpoint: sub.endpoint, p256dh, auth });
-    console.log('[Push] Push subscription synced to server.');
+    console.log('[Push] Fresh push subscription registered.');
   } catch (err) {
     console.warn('[Push] Subscribe failed:', err);
   }
@@ -124,7 +124,7 @@ function runImmediateCheck(subscriptions: Subscription[]) {
 export function useNotifications(subscriptions: Subscription[]) {
   const permissionRequested = useRef(false);
 
-  // On mount: if permission already granted, sync subscription silently (no dialog)
+  // On mount: if permission already granted, register fresh push subscription
   useEffect(() => {
     if (permissionRequested.current) return;
     permissionRequested.current = true;
@@ -134,6 +134,17 @@ export function useNotifications(subscriptions: Subscription[]) {
     }
     // Do NOT call requestPermission() here — Chrome requires a user gesture.
     // The "הפעל התראות" button in Settings handles the request.
+  }, []);
+
+  // Re-subscribe when app regains focus (user returns from phone settings)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && 'Notification' in window && Notification.permission === 'granted') {
+        void subscribeToPush();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   // Send subscriptions to SW and run immediate check when subscriptions change

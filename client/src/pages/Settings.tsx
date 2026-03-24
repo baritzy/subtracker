@@ -87,6 +87,18 @@ export function Settings({ onNavigate, onLogout }: Props) {
     } else {
       setNotifPermission(Notification.permission);
     }
+    // Re-check permission when user returns from phone settings
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && 'Notification' in window) {
+        const perm = Notification.permission;
+        setNotifPermission(perm);
+        if (perm === 'granted') {
+          void subscribeToPush();
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   async function handleDebug() {
