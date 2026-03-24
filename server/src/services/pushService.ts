@@ -37,32 +37,47 @@ export async function getPushSubscriptionsForUser(userId: number): Promise<PushS
   return res.rows;
 }
 
+export interface PushResult {
+  endpoint: string;
+  status: 'sent' | 'expired' | 'error';
+  statusCode?: number;
+  error?: string;
+}
+
 export async function sendPushToUser(
   userId: number,
   title: string,
   body: string,
-): Promise<void> {
+): Promise<PushResult[]> {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     console.warn('[Push] VAPID keys not configured — skipping push');
-    return;
+    return [];
   }
 
   const subs = await getPushSubscriptionsForUser(userId);
   const payload = JSON.stringify({ title, body });
+  const results: PushResult[] = [];
 
   for (const sub of subs) {
     try {
-      await webpush.sendNotification(
+      const res = await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         payload,
       );
+      console.log(`[Push] Sent to user ${userId} — status ${res.statusCode}, endpoint ...${sub.endpoint.slice(-30)}`);
+      results.push({ endpoint: sub.endpoint.slice(-30), status: 'sent', statusCode: res.statusCode });
     } catch (err: unknown) {
-      // 410 Gone = subscription expired — clean it up
-      if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 410) {
+      const statusCode = err && typeof err === 'object' && 'statusCode' in err ? (err as { statusCode: number }).statusCode : 0;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Push] Error for user ${userId} — status ${statusCode}: ${errMsg}`);
+
+      if (statusCode === 410 || statusCode === 404) {
         await deletePushSubscription(sub.endpoint);
+        results.push({ endpoint: sub.endpoint.slice(-30), status: 'expired', statusCode });
       } else {
-        console.error('[Push] Send error:', err);
+        results.push({ endpoint: sub.endpoint.slice(-30), status: 'error', statusCode, error: errMsg });
       }
     }
   }
+  return results;
 }

@@ -89,8 +89,8 @@ router.post('/test', requireAuth, async (req: AuthRequest, res) => {
   if (subs.length === 0) {
     return res.status(404).json({ error: 'no_subscription' });
   }
-  await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
-  res.json({ ok: true });
+  const results = await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
+  res.json({ ok: true, results });
 });
 
 export default router;
