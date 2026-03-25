@@ -68,10 +68,15 @@ router.post('/google-native', async (req: Request, res: Response) => {
     }
     // If only id_token provided, verify it directly
     if (id_token) {
-      const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID);
+      // Accept tokens from both the web client (new Firebase project) and legacy client
+      const NATIVE_CLIENT_ID = process.env.GOOGLE_NATIVE_CLIENT_ID
+        ?? '692989718499-326hv6pg6co1o3dckelld42p4u4ma53h.apps.googleusercontent.com';
+      const validAudiences = [NATIVE_CLIENT_ID, process.env.GOOGLE_CLIENT_ID].filter(Boolean) as string[];
+
+      const oauth2Client = new google.auth.OAuth2(NATIVE_CLIENT_ID);
       const ticket = await oauth2Client.verifyIdToken({
         idToken: id_token,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: validAudiences,
       });
       const payload = ticket.getPayload()!;
       const googleId = payload.sub;
