@@ -51,6 +51,55 @@ router.post('/anonymous', async (_req: Request, res: Response) => {
   }
 });
 
+// POST /api/auth/google-native  →  exchange auth code from Android SDK for JWT
+router.post('/google-native', async (req: Request, res: Response) => {
+  const { code, id_token } = req.body as { code?: string; id_token?: string };
+  if (!code && !id_token) {
+    return res.status(400).json({ error: 'Missing code or id_token' });
+  }
+  try {
+    if (code) {
+      // Exchange auth code for token (same as web callback)
+      const token = await handleAuthCallback(code);
+      return res.json({ token });
+    }
+    // If only id_token provided, verify it directly
+    if (id_token) {
+      const { OAuth2Client } = await import('google-auth-library');
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const ticket = await client.verifyIdToken({
+        idToken: id_token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload()!;
+      const googleId = payload.sub;
+      const email = payload.email ?? '';
+      const name = payload.name ?? null;
+
+      // Upsert user
+      const { pool } = await import('../db/database');
+      const { rows } = await pool.query(
+        `INSERT INTO users (google_id, email, name)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (google_id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name
+         RETURNING id`,
+        [googleId, email, name],
+      );
+      const jwt = await import('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET ?? 'subtracker-dev-secret-change-in-production';
+      const token = jwt.default.sign(
+        { userId: rows[0].id, googleId, email },
+        JWT_SECRET,
+        { expiresIn: '365d' },
+      );
+      return res.json({ token });
+    }
+  } catch (err) {
+    console.error('Native auth error:', err);
+    return res.status(401).json({ error: 'Authentication failed' });
+  }
+});
+
 // GET /api/auth/me  →  return current user info
 router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   const user = await getUserById(req.userId!);

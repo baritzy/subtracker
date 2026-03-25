@@ -94,11 +94,36 @@ router.get('/ping', async (_req, res) => {
 // POST /api/push/test — send a test notification to the logged-in user
 router.post('/test', requireAuth, async (req: AuthRequest, res) => {
   const subs = await getPushSubscriptionsForUser(req.userId!);
-  if (subs.length === 0) {
+  const { rows: fcmRows } = await pool.query('SELECT token FROM fcm_tokens WHERE user_id = $1', [req.userId!]);
+  if (subs.length === 0 && fcmRows.length === 0) {
     return res.status(404).json({ error: 'no_subscription' });
   }
   const results = await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
   res.json({ ok: true, results });
+});
+
+// POST /api/push/register-device — register FCM token from native Android app
+router.post('/register-device', requireAuth, async (req: AuthRequest, res) => {
+  const { token, device_type } = req.body as { token?: string; device_type?: string };
+  if (!token) {
+    return res.status(400).json({ error: 'Missing FCM token' });
+  }
+  try {
+    // Remove old tokens for this user
+    await pool.query('DELETE FROM fcm_tokens WHERE user_id = $1', [req.userId!]);
+    // Insert new token
+    await pool.query(
+      `INSERT INTO fcm_tokens (user_id, token, device_type)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (token) DO UPDATE SET user_id = $1, device_type = $3, updated_at = NOW()`,
+      [req.userId!, token, device_type ?? 'android'],
+    );
+    console.log(`[FCM] Registered token for user ${req.userId!} (${device_type ?? 'android'})`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[FCM] Registration error:', err);
+    res.status(500).json({ error: 'Failed to register device' });
+  }
 });
 
 export default router;
