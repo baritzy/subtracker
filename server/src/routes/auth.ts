@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
+import { google } from 'googleapis';
+import jwt from 'jsonwebtoken';
 import { getAuthUrl, handleAuthCallback, getUserById, createAnonymousUser } from '../services/authService';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { pool } from '../db/database';
 
 const router = Router();
 
@@ -65,9 +68,8 @@ router.post('/google-native', async (req: Request, res: Response) => {
     }
     // If only id_token provided, verify it directly
     if (id_token) {
-      const { OAuth2Client } = await import('google-auth-library');
-      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-      const ticket = await client.verifyIdToken({
+      const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID);
+      const ticket = await oauth2Client.verifyIdToken({
         idToken: id_token,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
@@ -77,7 +79,6 @@ router.post('/google-native', async (req: Request, res: Response) => {
       const name = payload.name ?? null;
 
       // Upsert user
-      const { pool } = await import('../db/database');
       const { rows } = await pool.query(
         `INSERT INTO users (google_id, email, name)
          VALUES ($1, $2, $3)
@@ -85,9 +86,8 @@ router.post('/google-native', async (req: Request, res: Response) => {
          RETURNING id`,
         [googleId, email, name],
       );
-      const jwt = await import('jsonwebtoken');
       const JWT_SECRET = process.env.JWT_SECRET ?? 'subtracker-dev-secret-change-in-production';
-      const token = jwt.default.sign(
+      const token = jwt.sign(
         { userId: rows[0].id, googleId, email },
         JWT_SECRET,
         { expiresIn: '365d' },

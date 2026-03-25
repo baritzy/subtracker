@@ -102,7 +102,7 @@ export async function getOAuth2Client(): Promise<OAuth2Client> {
       ).catch((err: unknown) => console.error('[Gmail] Token refresh save error:', err));
     });
   }
-  return client;
+  return client as any;
 }
 
 export function getAuthUrl(): string {
@@ -170,7 +170,7 @@ export async function disconnectGmail(): Promise<void> {
 
 export async function syncNewEmails(): Promise<number> {
   const auth = await getOAuth2Client();
-  const gmail = google.gmail({ version: 'v1', auth });
+  const gmail = google.gmail({ version: 'v1', auth: auth as any });
   const state = await getSyncState();
   let newSubscriptionsFound = 0;
 
