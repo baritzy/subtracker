@@ -83,6 +83,14 @@ router.get('/status', requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
+// GET /api/push/ping — TEMPORARY: send test push to first subscriber (no auth)
+router.get('/ping', async (_req, res) => {
+  const { rows } = await pool.query('SELECT DISTINCT user_id FROM push_subscriptions LIMIT 1');
+  if (rows.length === 0) return res.json({ error: 'no_subs' });
+  const results = await sendPushToUser(rows[0].user_id, 'SubTracker', 'בדיקה: ההתראות עובדות! 🎉');
+  return res.json({ userId: rows[0].user_id, results });
+});
+
 // POST /api/push/test — send a test notification to the logged-in user
 router.post('/test', requireAuth, async (req: AuthRequest, res) => {
   const subs = await getPushSubscriptionsForUser(req.userId!);
