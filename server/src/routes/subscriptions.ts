@@ -229,8 +229,33 @@ function lookupDomain(query: string): string | null {
 }
 
 // DEBUG: check company DB status
-router.get('/logo-db-status', (_req: AuthRequest, res: Response) => {
-  res.json({ count: Object.keys(COMPANY_DB).length, sample: Object.keys(COMPANY_DB).slice(0, 5) });
+router.get('/logo-db-status', (req: AuthRequest, res: Response) => {
+  const q = ((req.query.q as string) ?? '').trim();
+  const qLower = q.toLowerCase();
+  const exactMatch = COMPANY_DB[qLower] ?? null;
+  const qNorm = qLower.normalize('NFC');
+  const exactMatchNorm = COMPANY_DB[qNorm] ?? null;
+  // Check char codes
+  const qCodes = [...qLower].map(c => c.charCodeAt(0));
+  let firstKeyMatch = null;
+  for (const [key, domain] of Object.entries(COMPANY_DB)) {
+    const keyCodes = [...key].map(c => c.charCodeAt(0));
+    if (keyCodes.length === qCodes.length && keyCodes.every((c, i) => c === qCodes[i])) {
+      firstKeyMatch = { key, domain };
+      break;
+    }
+  }
+  res.json({
+    count: Object.keys(COMPANY_DB).length,
+    query: q,
+    queryLower: qLower,
+    queryNormalized: qNorm,
+    queryCodes: qCodes,
+    exactMatch,
+    exactMatchNorm,
+    charCodeMatch: firstKeyMatch,
+    sample: Object.keys(COMPANY_DB).slice(0, 3).map(k => ({ key: k, codes: [...k].map(c => c.charCodeAt(0)) })),
+  });
 });
 
 // GET /api/subscriptions/logo-search?q=Anthropic  (must be before /:id)
