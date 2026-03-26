@@ -56,7 +56,7 @@ const COMPANY_DB: Record<string, string> = {
   'ביטוח לאומי': 'btl.gov.il',
   'כאן': 'kan.org.il',
   'חינוכית': 'iba.org.il',
-  'freetv': 'freetv.co.il', 'free tv': 'freetv.co.il', 'פריטיוי': 'freetv.co.il', 'פרי טיוי': 'freetv.co.il',
+  'freetv': 'freetv.co.il', 'free tv': 'freetv.co.il', 'פריטיוי': 'freetv.co.il', 'פרי טיוי': 'freetv.co.il', 'פרי טי וי': 'freetv.co.il', 'freeTV': 'freetv.co.il',
   'ווינדס': 'winds.co.il',
   '012': '012.net.il',
   '013': '013netvision.net.il',
@@ -193,11 +193,16 @@ async function findBestLogo(domain: string): Promise<string> {
   return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
 }
 
-// Lookup domain from the local database (supports Hebrew + English + partial match)
+// Lookup domain from the local database (supports Hebrew + English + fuzzy match)
 function lookupDomain(query: string): string | null {
   const q = query.toLowerCase().trim();
   // Exact match
   if (COMPANY_DB[q]) return COMPANY_DB[q];
+  // Normalized match (remove all spaces)
+  const qNoSpaces = q.replace(/\s+/g, '');
+  for (const [key, domain] of Object.entries(COMPANY_DB)) {
+    if (key.replace(/\s+/g, '') === qNoSpaces) return domain;
+  }
   // Partial match — find key that starts with query or query starts with key
   for (const [key, domain] of Object.entries(COMPANY_DB)) {
     if (key.startsWith(q) || q.startsWith(key)) return domain;
@@ -206,6 +211,10 @@ function lookupDomain(query: string): string | null {
   const words = q.split(/\s+/);
   for (const word of words) {
     if (word.length >= 3 && COMPANY_DB[word]) return COMPANY_DB[word];
+  }
+  // Contains match
+  for (const [key, domain] of Object.entries(COMPANY_DB)) {
+    if (key.length >= 3 && (q.includes(key) || key.includes(q))) return domain;
   }
   return null;
 }
