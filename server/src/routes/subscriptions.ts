@@ -41,7 +41,7 @@ router.get('/logo-search', async (req: AuthRequest, res: Response) => {
       return queryWords.some(word => d.includes(word));
     }) ?? null;
     const domain = match?.domain ?? null;
-    const logo = domain ? `https://logo.clearbit.com/${domain}` : null;
+    const logo = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null;
     return res.json({ logo, domain });
   } catch {
     return res.json({ logo: null });
