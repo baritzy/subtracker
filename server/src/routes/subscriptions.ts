@@ -29,7 +29,28 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // ====== COMPANY LOGO DATABASE ======
 // Loaded from JSON file to ensure UTF-8 Hebrew support
-const COMPANY_DB: Record<string, string> = require('../data/companyDb.json');
+import * as fs from 'fs';
+import * as path from 'path';
+let COMPANY_DB: Record<string, string> = {};
+try {
+  // Try compiled location first, then source location
+  const jsonPaths = [
+    path.join(__dirname, '..', 'data', 'companyDb.json'),     // dist/data/
+    path.join(__dirname, '..', '..', 'src', 'data', 'companyDb.json'), // src/data/ from dist/routes/
+  ];
+  for (const p of jsonPaths) {
+    if (fs.existsSync(p)) {
+      COMPANY_DB = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      console.log(`[LogoDB] Loaded ${Object.keys(COMPANY_DB).length} companies from ${p}`);
+      break;
+    }
+  }
+  if (Object.keys(COMPANY_DB).length === 0) {
+    console.warn('[LogoDB] companyDb.json not found, Hebrew search disabled');
+  }
+} catch (err) {
+  console.warn('[LogoDB] Failed to load companyDb.json:', err);
+}
 
 // Inline DB removed — see data/companyDb.json
 const _LEGACY_DB_REMOVED = {
