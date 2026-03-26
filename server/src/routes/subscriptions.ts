@@ -56,6 +56,7 @@ const COMPANY_DB: Record<string, string> = {
   'ביטוח לאומי': 'btl.gov.il',
   'כאן': 'kan.org.il',
   'חינוכית': 'iba.org.il',
+  'freetv': 'freetv.co.il', 'free tv': 'freetv.co.il', 'פריטיוי': 'freetv.co.il', 'פרי טיוי': 'freetv.co.il',
   'ווינדס': 'winds.co.il',
   '012': '012.net.il',
   '013': '013netvision.net.il',
