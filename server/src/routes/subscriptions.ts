@@ -28,11 +28,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // ====== COMPANY LOGO DATABASE ======
-// Imported as TypeScript with Unicode-escaped Hebrew keys (encoding-safe)
-import { COMPANY_DB } from './companyDbInline';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const COMPANY_DB: Record<string, string> = require('./companyDbInline').COMPANY_DB;
 
-// Inline DB removed — see data/companyDb.json
-const _LEGACY_DB_REMOVED = {
+// Legacy inline DB (unused, kept as backup reference)
+const _UNUSED = {
   // === ISRAEL TOP 100 ===
   'נטפליקס': 'netflix.com', 'netflix': 'netflix.com',
   'ספוטיפיי': 'spotify.com', 'spotify': 'spotify.com',
