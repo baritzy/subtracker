@@ -27,6 +27,28 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   res.json(subs);
 });
 
+// Try to find a high-res logo for a domain
+async function findBestLogo(domain: string): Promise<string> {
+  // Try 1: apple-touch-icon (always 180px+, best quality)
+  try {
+    const atiUrl = `https://${domain}/apple-touch-icon.png`;
+    const atiRes = await fetch(atiUrl, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(3000) });
+    if (atiRes.ok && atiRes.headers.get('content-type')?.includes('image')) {
+      return atiUrl;
+    }
+  } catch {}
+  // Try 2: apple-touch-icon-precomposed
+  try {
+    const atiUrl = `https://${domain}/apple-touch-icon-precomposed.png`;
+    const atiRes = await fetch(atiUrl, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(3000) });
+    if (atiRes.ok && atiRes.headers.get('content-type')?.includes('image')) {
+      return atiUrl;
+    }
+  } catch {}
+  // Try 3: DuckDuckGo icon (48px, decent)
+  return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+}
+
 // GET /api/subscriptions/logo-search?q=Anthropic  (must be before /:id)
 router.get('/logo-search', async (req: AuthRequest, res: Response) => {
   const q = (req.query.q as string ?? '').trim();
@@ -41,7 +63,7 @@ router.get('/logo-search', async (req: AuthRequest, res: Response) => {
       return queryWords.some(word => d.includes(word));
     }) ?? null;
     const domain = match?.domain ?? null;
-    const logo = domain ? `https://icons.duckduckgo.com/ip3/${domain}.ico` : null;
+    const logo = domain ? await findBestLogo(domain) : null;
     return res.json({ logo, domain });
   } catch {
     return res.json({ logo: null });
@@ -51,8 +73,18 @@ router.get('/logo-search', async (req: AuthRequest, res: Response) => {
 // GET /api/subscriptions/cancel-url?service=CapCut  (must be before /:id)
 router.get('/cancel-url', async (req: AuthRequest, res: Response) => {
   const service = (req.query.service as string) ?? '';
-  const url = lookupCancelUrl(service);
-  if (!url) return res.json({ url: null });
+  let url = lookupCancelUrl(service);
+  if (!url) {
+    // Fallback: try to find the company domain and return its account/settings page
+    try {
+      const suggest = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(service)}`);
+      const results = await suggest.json() as { domain: string }[];
+      if (results.length > 0) {
+        url = `https://${results[0].domain}/account`;
+      }
+    } catch {}
+    if (!url) return res.json({ url: null });
+  }
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
