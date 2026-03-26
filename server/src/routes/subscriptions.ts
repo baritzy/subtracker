@@ -28,8 +28,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // ====== COMPANY LOGO DATABASE ======
-// Maps company names (lowercase) and aliases to domains
-const COMPANY_DB: Record<string, string> = {
+// Loaded from JSON file to ensure UTF-8 Hebrew support
+const COMPANY_DB: Record<string, string> = require('../data/companyDb.json');
+
+// Inline DB removed — see data/companyDb.json
+const _LEGACY_DB_REMOVED = {
   // === ISRAEL TOP 100 ===
   'נטפליקס': 'netflix.com', 'netflix': 'netflix.com',
   'ספוטיפיי': 'spotify.com', 'spotify': 'spotify.com',
