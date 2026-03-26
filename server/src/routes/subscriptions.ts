@@ -195,7 +195,8 @@ async function findBestLogo(domain: string): Promise<string> {
 
 // Lookup domain from the local database (supports Hebrew + English + fuzzy match)
 function lookupDomain(query: string): string | null {
-  const q = query.toLowerCase().trim();
+  // Normalize: lowercase, trim, collapse whitespace
+  const q = query.toLowerCase().trim().replace(/\s+/g, ' ');
   // Exact match
   if (COMPANY_DB[q]) return COMPANY_DB[q];
   // Normalized match (remove all spaces)
