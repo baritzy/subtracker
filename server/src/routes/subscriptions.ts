@@ -28,8 +28,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // ====== COMPANY LOGO DATABASE ======
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const COMPANY_DB: Record<string, string> = require('./companyDbInline').COMPANY_DB;
+let COMPANY_DB: Record<string, string> = {};
+try {
+  COMPANY_DB = require('./companyDbInline').COMPANY_DB;
+  console.log('[LogoDB] Loaded', Object.keys(COMPANY_DB).length, 'companies. Sample:', Object.keys(COMPANY_DB).slice(0, 3));
+} catch (err) {
+  console.error('[LogoDB] FAILED to load companyDbInline:', err);
+}
 
 // Legacy inline DB (unused, kept as backup reference)
 const _UNUSED = {
@@ -222,6 +227,11 @@ function lookupDomain(query: string): string | null {
   }
   return null;
 }
+
+// DEBUG: check company DB status
+router.get('/logo-db-status', (_req: AuthRequest, res: Response) => {
+  res.json({ count: Object.keys(COMPANY_DB).length, sample: Object.keys(COMPANY_DB).slice(0, 5) });
+});
 
 // GET /api/subscriptions/logo-search?q=Anthropic  (must be before /:id)
 router.get('/logo-search', async (req: AuthRequest, res: Response) => {
