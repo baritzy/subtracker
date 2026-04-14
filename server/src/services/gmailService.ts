@@ -380,19 +380,3 @@ function extractCompanyFromFrom(from: string): string | null {
   return null;
 }
 
-let pollingInterval: ReturnType<typeof setInterval> | null = null;
-
-export function startPolling(intervalMs = 15 * 60 * 1000): void {
-  if (pollingInterval) return;
-  pollingInterval = setInterval(async () => {
-    if (!(await isGmailConnected())) return;
-    console.log('[Gmail] Running scheduled sync...');
-    try {
-      const count = await syncNewEmails();
-      if (count > 0) console.log(`[Gmail] Found ${count} new subscription(s).`);
-    } catch (err) {
-      console.error('[Gmail] Polling error:', err);
-    }
-  }, intervalMs);
-  console.log('[Gmail] Polling started (every 15 min).');
-}
