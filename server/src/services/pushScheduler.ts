@@ -101,7 +101,8 @@ async function sendDueNotifications(): Promise<void> {
 }
 
 export function startPushScheduler(): void {
-  const INTERVAL_MS = 60 * 1000; // every minute
+  // Check every 15 minutes — allows Neon compute to auto-suspend between checks
+  const INTERVAL_MS = 15 * 60 * 1000;
 
   backfillScheduledNotifications()
     .then(() => sendDueNotifications())
@@ -111,5 +112,5 @@ export function startPushScheduler(): void {
     sendDueNotifications().catch(err => console.error('[Push] Scheduler error:', err));
   }, INTERVAL_MS);
 
-  console.log('[Push] Scheduler started — running every minute.');
+  console.log('[Push] Scheduler started — running every 15 minutes.');
 }

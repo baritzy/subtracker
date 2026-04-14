@@ -7,7 +7,7 @@ import gmailRouter from './routes/gmail';
 import authRouter from './routes/auth';
 import pushRouter from './routes/push';
 import { initDb } from './db/database';
-import { startPolling, isGmailConnected } from './services/gmailService';
+
 import { startRenewalScheduler } from './services/renewalService';
 import { startPushScheduler } from './services/pushScheduler';
 
@@ -67,15 +67,13 @@ async function start(): Promise<void> {
   app.listen(PORT, async () => {
     console.log(`Sub Tracker server running on http://localhost:${PORT}`);
 
-    // Start Gmail polling if already connected
-    if (await isGmailConnected()) {
-      startPolling();
-    }
+    // Gmail sync is on-demand only (user triggers it manually)
+    // No automatic polling — saves Neon compute hours
 
     // Start renewal scheduler (runs on startup + every midnight)
     startRenewalScheduler();
 
-    // Start push notification scheduler (runs every 10 minutes)
+    // Start push notification scheduler (runs every 15 minutes)
     startPushScheduler();
   });
 }
