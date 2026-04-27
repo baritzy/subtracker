@@ -73,7 +73,7 @@ async function start(): Promise<void> {
     // Start renewal scheduler (runs on startup + every midnight)
     startRenewalScheduler();
 
-    // Start push notification scheduler (runs every 15 minutes)
+    // Start push notification scheduler (runs every 30 minutes)
     startPushScheduler();
   });
 }
