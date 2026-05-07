@@ -6,6 +6,7 @@ import subscriptionsRouter from './routes/subscriptions';
 import gmailRouter from './routes/gmail';
 import authRouter from './routes/auth';
 import pushRouter from './routes/push';
+import receiptRouter from './routes/receipt';
 import { initDb } from './db/database';
 
 import { startRenewalScheduler } from './services/renewalService';
@@ -22,6 +23,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/gmail', gmailRouter);
 app.use('/api/push', pushRouter);
+app.use('/api/receipt', receiptRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));

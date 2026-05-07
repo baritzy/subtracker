@@ -10,6 +10,7 @@ interface Props {
   onClose: () => void;
   onSave: (payload: CreateSubscriptionPayload) => Promise<void>;
   initial?: Subscription | null;
+  prefill?: Partial<CreateSubscriptionPayload> | null;
 }
 
 /** If name contains Hebrew, translate to English via free MyMemory API. */
@@ -61,7 +62,7 @@ const fieldStyle: React.CSSProperties = {
   textAlign: 'right',
 };
 
-export function SubscriptionForm({ open, onClose, onSave, initial }: Props) {
+export function SubscriptionForm({ open, onClose, onSave, initial, prefill }: Props) {
   const [form, setForm] = useState<CreateSubscriptionPayload>(() => {
     if (!initial) {
       const saved = sessionStorage.getItem('formDraft');
@@ -108,13 +109,14 @@ export function SubscriptionForm({ open, onClose, onSave, initial }: Props) {
     } else {
       const next = new Date();
       next.setMonth(next.getMonth() + 1);
-      setForm({ ...EMPTY, renewal_date: toISODate(next) });
+      const base = { ...EMPTY, renewal_date: toISODate(next) };
+      setForm(prefill ? { ...base, ...prefill } : base);
     }
     setError('');
     setLogoStage(0);
-    cancelUrlForRef.current = initial?.company_name ?? '';
-    logoForRef.current = initial?.company_name ?? '';
-  }, [initial, open]);
+    cancelUrlForRef.current = initial?.company_name ?? prefill?.company_name ?? '';
+    logoForRef.current = initial?.company_name ?? prefill?.company_name ?? '';
+  }, [initial, prefill, open]);
 
   function handleCostChange(value: number, cycle?: 'monthly' | 'yearly' | 'custom', customMonths?: number) {
     const bc = cycle ?? form.billing_cycle;

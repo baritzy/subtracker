@@ -13,9 +13,10 @@ interface Props {
   fabOpen: boolean;
   onFabClose: () => void;
   onNavigate: (page: 'history' | 'calendar' | 'trials') => void;
+  scanPrefill?: Partial<CreateSubscriptionPayload> | null;
 }
 
-export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
+export function Dashboard({ fabOpen, onFabClose, onNavigate, scanPrefill }: Props) {
   const { subscriptions, loading, error, create, update, cancel, confirm, dismiss } = useSubscriptions();
 
   const [editTarget, setEditTarget] = useState<Subscription | null>(null);
@@ -180,6 +181,7 @@ export function Dashboard({ fabOpen, onFabClose, onNavigate }: Props) {
         onClose={() => { onFabClose(); setEditTarget(null); }}
         onSave={handleSave}
         initial={editTarget}
+        prefill={editTarget ? null : scanPrefill}
       />
     </div>
   );

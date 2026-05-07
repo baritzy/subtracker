@@ -89,4 +89,28 @@ export const api = {
 
   logoSearch: (q: string) =>
     request<{ logo: string | null; domain: string | null }>(`/subscriptions/logo-search?q=${encodeURIComponent(q)}`),
+
+  receipt: {
+    scan: async (file: File) => {
+      const token = localStorage.getItem('auth_token');
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/receipt/scan', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!res.ok) return { success: false as const };
+      return res.json() as Promise<{
+        success: boolean;
+        service_name?: string | null;
+        company_name?: string | null;
+        cost?: number | null;
+        currency?: string | null;
+        billing_cycle?: string | null;
+        renewal_date?: string | null;
+        notes?: string | null;
+      }>;
+    },
+  },
 };
