@@ -29,14 +29,16 @@ Return ONLY valid JSON (no markdown, no code blocks, no extra text):
   "cost": 9.99,
   "currency": "ILS",
   "billing_cycle": "monthly",
-  "renewal_date": "2024-06-15",
+  "billing_date": "2026-04-07",
+  "renewal_date": "2026-05-07",
   "cancel_url": "https://...",
   "notes": null
 }
 Rules:
 - billing_cycle: one of monthly / yearly / quarterly. Default to monthly if unclear.
 - currency: one of ILS / USD / EUR / GBP
-- renewal_date: YYYY-MM-DD format. Read ONLY dates that appear as literal text in the image â€” do not calculate, infer, or add time periods to any date. If the image shows "27.4.26" or "April 27, 2026", return "2026-04-27". If no date text is visible in the image, return null.
+- billing_date: the exact charge/payment date shown in the receipt as literal text (YYYY-MM-DD). Read only what appears in the image — do not calculate. If no date is visible, return null.
+- renewal_date: calculate as billing_date + 1 billing_cycle (monthly → +1 month, yearly → +1 year, quarterly → +3 months). If billing_date is null, return null.
 - cancel_url: use your knowledge of the service to provide the direct URL where users can cancel or manage their subscription (account/billing settings page). Examples: Netflix → "https://www.netflix.com/cancel", Spotify → "https://www.spotify.com/account/subscription", CapCut → "https://www.capcut.com/account/membership", ChatGPT/OpenAI → "https://platform.openai.com/account/billing", ElevenLabs → "https://elevenlabs.io/subscription". For any service you know, provide the URL. Return null only if you truly have no idea.
 - company_name: return the well-known BRAND name as consumers know it, NOT the legal company name. The receipt may show legal names â€” translate them to the recognizable brand. Examples: "Netflix Operations LLC" â†’ "Netflix", "Eleven Labs Inc." â†’ "ElevenLabs", "Google Ireland Limited" â†’ "Google", "Apple Distribution International" â†’ "Apple", "Spotify AB" â†’ "Spotify", "Meta Platforms Inc." â†’ "Meta", "Microsoft Corporation" â†’ "Microsoft", "Adobe Inc." â†’ "Adobe". If you cannot identify the brand, return null.
 - Set any other unknown fields to null
