@@ -183,8 +183,8 @@ const _UNUSED = {
 // Try to find a high-res logo for a domain
 // Hardcoded logo overrides for companies with broken favicons
 const LOGO_OVERRIDES: Record<string, string> = {
-  'freetv.co.il': 'https://subtracker-api.fly.dev/logos/freetv.png',
-  'web.freetv.tv': 'https://subtracker-api.fly.dev/logos/freetv.png',
+  'freetv.co.il': 'https://subtracker-nm4n.onrender.com/logos/freetv.png',
+  'web.freetv.tv': 'https://subtracker-nm4n.onrender.com/logos/freetv.png',
 };
 
 async function findBestLogo(domain: string): Promise<string> {
