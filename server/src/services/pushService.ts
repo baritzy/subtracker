@@ -72,39 +72,11 @@ export async function sendPushToUser(
 ): Promise<PushResult[]> {
   const results: PushResult[] = [];
 
-  // 1) Send via Web Push (for PWA/TWA clients)
-  if (VAPID_PUBLIC && VAPID_PRIVATE) {
-    const subs = await getPushSubscriptionsForUser(userId);
-    const payload = JSON.stringify({ title, body });
-
-    for (const sub of subs) {
-      try {
-        const res = await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        );
-        console.log(`[Push] Web Push sent to user ${userId} — status ${res.statusCode}`);
-        results.push({ endpoint: sub.endpoint.slice(-30), status: 'sent', statusCode: res.statusCode });
-      } catch (err: unknown) {
-        const statusCode = err && typeof err === 'object' && 'statusCode' in err ? (err as { statusCode: number }).statusCode : 0;
-        const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[Push] Web Push error for user ${userId} — status ${statusCode}: ${errMsg}`);
-
-        if (statusCode === 410 || statusCode === 404) {
-          await deletePushSubscription(sub.endpoint);
-          results.push({ endpoint: sub.endpoint.slice(-30), status: 'expired', statusCode });
-        } else {
-          results.push({ endpoint: sub.endpoint.slice(-30), status: 'error', statusCode, error: errMsg });
-        }
-      }
-    }
-  }
-
-  // 2) Send via FCM (for native Android clients)
+  // Send via FCM only (native Android app — no browser/web push duplicates)
   await sendFcmToUser(userId, title, body, results);
 
   if (results.length === 0) {
-    console.warn(`[Push] No push subscriptions or FCM tokens for user ${userId}`);
+    console.warn(`[Push] No FCM tokens for user ${userId}`);
   }
 
   return results;

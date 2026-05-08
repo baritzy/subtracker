@@ -7,10 +7,18 @@ const OFFSETS = [
   { key: '3h',  hours: 3,      label: 'בעוד 3 שעות' },
 ] as const;
 
-// Parse "YYYY-MM-DD" as midnight Israel time (UTC+2)
+// Parse "YYYY-MM-DD" as midnight Israel time (auto-handles DST: IST=UTC+2, IDT=UTC+3)
 function parseRenewalDate(dateStr: string): number {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return Date.UTC(y, m - 1, d) - 2 * 60 * 60 * 1000;
+  const utcNoon = Date.UTC(y, m - 1, d, 12, 0, 0); // noon UTC on that date
+
+  // Ask Intl what hour it is in Israel at UTC noon — gives us the offset
+  const israelHour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jerusalem', hour: 'numeric', hour12: false }).format(new Date(utcNoon))
+  );
+  const offsetHours = israelHour - 12; // 2 in winter, 3 in summer
+
+  return Date.UTC(y, m - 1, d) - offsetHours * 60 * 60 * 1000;
 }
 
 // Schedule notifications for a subscription — call on create or update
@@ -91,10 +99,7 @@ async function backfillScheduledNotifications(): Promise<void> {
     FROM subscriptions s
     WHERE s.status = 'active'
       AND s.renewal_date IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM scheduled_notifications sn
-        WHERE sn.subscription_id = s.id AND NOT sn.sent
-      )
+      AND s.notifications_enabled = 1
   `);
 
   for (const row of rows) {
@@ -126,12 +131,16 @@ async function sendDueNotifications(): Promise<void> {
     WHERE sn.scheduled_at <= NOW()
       AND NOT sn.sent
       AND s.status = 'active'
+      AND s.notifications_enabled = 1
   `);
 
   for (const row of rows) {
     const label = OFFSETS.find(o => o.key === row.offset_key)?.label ?? '';
+    const body = row.offset_key === 'test'
+      ? `בדיקה: התראה מתוזמנת עובדת! 🎉`
+      : `${row.company_name} מתחדש ${label}`;
     try {
-      await sendPushToUser(row.user_id, 'SubTracker', `${row.company_name} מתחדש ${label}`);
+      await sendPushToUser(row.user_id, '\u05DE\u05E0\u05D4\u05DC \u05DE\u05E0\u05D5\u05D9\u05D9\u05DD', body);
       console.log(`[Push] Sent "${row.offset_key}" for "${row.company_name}" → user ${row.user_id}`);
     } catch (err) {
       console.error(`[Push] Failed to send notification id=${row.id}:`, err);

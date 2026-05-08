@@ -2,6 +2,7 @@ import { pool } from '../db/database';
 
 export interface Subscription {
   id: number;
+  user_id: number;
   company_name: string;
   service_name: string;
   cost: number;
@@ -22,6 +23,7 @@ export interface Subscription {
   logo_url: string | null;
   is_trial: number;
   trial_end_date: string | null;
+  notifications_enabled: number;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +65,7 @@ export interface UpdateSubscriptionInput {
   plan_type_custom?: string | null;
   is_trial?: boolean;
   trial_end_date?: string | null;
+  notifications_enabled?: number;
 }
 
 const NOW_EXPR = `to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`;

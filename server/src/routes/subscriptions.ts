@@ -14,6 +14,7 @@ import { lookupCancelUrl } from '../services/cancelUrlService';
 import { lookupPlansUrl } from '../services/plansUrlService';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { scheduleNotifications, cancelNotifications } from '../services/pushScheduler';
+import { smartCompanySearch, saveUserLogo, getQuotaStatus } from '../services/companySearchService';
 
 const router = Router();
 
@@ -180,7 +181,15 @@ const _UNUSED = {
 };
 
 // Try to find a high-res logo for a domain
+// Hardcoded logo overrides for companies with broken favicons
+const LOGO_OVERRIDES: Record<string, string> = {
+  'freetv.co.il': 'https://subtracker-api.fly.dev/logos/freetv.png',
+  'web.freetv.tv': 'https://subtracker-api.fly.dev/logos/freetv.png',
+};
+
 async function findBestLogo(domain: string): Promise<string> {
+  // Check overrides first
+  if (LOGO_OVERRIDES[domain]) return LOGO_OVERRIDES[domain];
   // Try 1: apple-touch-icon (always 180px+, best quality)
   try {
     const atiUrl = `https://${domain}/apple-touch-icon.png`;
@@ -197,7 +206,19 @@ async function findBestLogo(domain: string): Promise<string> {
       return atiUrl;
     }
   } catch {}
-  // Try 3: DuckDuckGo icon
+  // Try 3: Google favicons (128px, very reliable)
+  try {
+    const gUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+    const gRes = await fetch(gUrl, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(3000) });
+    if (gRes.ok && gRes.headers.get('content-type')?.includes('image')) {
+      // Google returns a default globe icon for unknown domains — check size to filter it out
+      const contentLength = parseInt(gRes.headers.get('content-length') ?? '0');
+      if (contentLength > 500) {
+        return gUrl;
+      }
+    }
+  } catch {}
+  // Try 4: DuckDuckGo icon
   return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
 }
 
@@ -270,71 +291,129 @@ router.get('/logo-search', async (req: AuthRequest, res: Response) => {
   const q = (req.query.q as string ?? '').trim();
   if (!q) return res.json({ logo: null });
 
-  // Step 1: Check local database first (instant, supports Hebrew)
+  // Step 1: Check hardcoded DB first (instant, supports Hebrew)
   const localDomain = lookupDomain(q);
+  console.log(`[logo-search] q="${q}" → localDomain=${localDomain}`);
   if (localDomain) {
     const logo = await findBestLogo(localDomain);
+    console.log(`[logo-search] findBestLogo("${localDomain}") → ${logo?.slice(0, 80)}`);
     return res.json({ logo, domain: localDomain });
   }
 
-  // Step 2: Clearbit autocomplete
+  // Step 2: Smart search — cache → Google → Clearbit → guess (with verification)
   try {
-    const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(normalizeCompanyForLogo(q))}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-    const results = await r.json() as { name: string; domain: string; logo: string }[];
-    const queryWords = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-    const match = results.find(r => {
-      const d = r.domain.toLowerCase();
-      const n = r.name.toLowerCase();
-      return queryWords.some(word => d.includes(word) || n.includes(word));
-    }) ?? (results.length > 0 ? results[0] : null);
-    if (match?.domain) {
-      const logo = await findBestLogo(match.domain);
-      return res.json({ logo, domain: match.domain });
-    }
-  } catch {}
-
-  // Step 3: Try guessing domain
-  const guess = q.toLowerCase().replace(/\s+/g, '');
-  const guesses = [`${guess}.com`, `${guess}.co.il`, `${guess}.io`];
-  for (const g of guesses) {
-    try {
-      const r = await fetch(`https://${g}/apple-touch-icon.png`, { method: 'HEAD', signal: AbortSignal.timeout(2000) });
-      if (r.ok) return res.json({ logo: `https://${g}/apple-touch-icon.png`, domain: g });
-    } catch {}
+    const result = await smartCompanySearch(q);
+    return res.json({ logo: result.logo, domain: result.domain });
+  } catch (e) {
+    console.error('[logo-search] Smart search failed, falling back:', e);
+    return res.json({ logo: null });
   }
+});
 
-  return res.json({ logo: null });
+// POST /api/subscriptions/logo-upload — user uploads a logo for a company
+router.post('/logo-upload', async (req: AuthRequest, res: Response) => {
+  const { companyName, logoUrl } = req.body;
+  if (!companyName || !logoUrl) return res.status(400).json({ error: 'companyName and logoUrl required' });
+  try {
+    await saveUserLogo(companyName, logoUrl);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save logo' });
+  }
+});
+
+// GET /api/subscriptions/search-quota — admin: check today's quota usage
+router.get('/search-quota', async (req: AuthRequest, res: Response) => {
+  const status = await getQuotaStatus();
+  res.json(status);
 });
 
 // GET /api/subscriptions/cancel-url?service=CapCut  (must be before /:id)
 router.get('/cancel-url', async (req: AuthRequest, res: Response) => {
   const service = (req.query.service as string) ?? '';
+  console.log(`[cancel-url] Looking up: "${service}"`);
+
+  // Step 1: Check hardcoded DB
   let url = lookupCancelUrl(service);
-  if (!url) {
-    // Fallback: try to find the company domain and return its account/settings page
+  if (url) {
+    console.log(`[cancel-url] Found in DB: ${url}`);
+    return res.json({ url });
+  }
+
+  // Step 2: Find the company's domain (via logo search cache or COMPANY_DB)
+  const localDomain = lookupDomain(service);
+  let domain = localDomain;
+
+  // Step 3: If no local domain, try Google Custom Search
+  if (!domain) {
+    const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
+    const cx = process.env.GOOGLE_SEARCH_CX;
+    if (apiKey && cx) {
+      try {
+        const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(service + ' cancel subscription')}&num=3`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(5000) });
+        if (searchRes.ok) {
+          const data = await searchRes.json() as { items?: { link: string; displayLink: string }[] };
+          if (data.items?.length) {
+            // Check each result — find first one that looks like it belongs to this company
+            const serviceWords = service.toLowerCase().split(/\s+/).filter(w => w.length >= 2);
+            for (const item of data.items) {
+              const itemDomain = item.displayLink.replace(/^www\./, '');
+              const matchesService = serviceWords.some(w => itemDomain.includes(w) || item.link.toLowerCase().includes(w));
+              if (matchesService) {
+                // Found a cancel-related page for this company
+                console.log(`[cancel-url] Google found cancel page: ${item.link}`);
+                return res.json({ url: item.link });
+              }
+            }
+            // No cancel-specific match — use first result's domain as fallback
+            domain = data.items[0].displayLink.replace(/^www\./, '');
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // Step 4: If no domain from Google, try Clearbit
+  if (!domain) {
     try {
-      const suggest = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(normalizeCompanyForLogo(service))}`);
-      const results = await suggest.json() as { domain: string }[];
+      const suggest = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(service)}`, { signal: AbortSignal.timeout(3000) });
+      const results = await suggest.json() as { domain: string; name: string }[];
       if (results.length > 0) {
-        url = `https://${results[0].domain}/account`;
+        const serviceWords = service.toLowerCase().split(/\s+/).filter(w => w.length >= 2);
+        const match = results.find(r => serviceWords.some(w => r.domain.includes(w) || r.name.toLowerCase().includes(w)));
+        domain = match?.domain ?? results[0].domain;
       }
     } catch {}
-    if (!url) return res.json({ url: null });
   }
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch(url, {
-      method: 'HEAD',
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-    });
-    clearTimeout(timeout);
-    if (response.status === 404) return res.json({ url: null });
-  } catch { /* timeout / network — assume URL might still be valid */ }
-  return res.json({ url });
+
+  if (!domain) {
+    console.log(`[cancel-url] No domain found for "${service}"`);
+    return res.json({ url: null });
+  }
+
+  // Step 5: Try common cancel/account paths on the domain
+  const cancelPaths = ['/cancel', '/account/cancel', '/account', '/settings/subscription', '/settings/billing', '/my-account'];
+  for (const path of cancelPaths) {
+    const testUrl = `https://www.${domain}${path}`;
+    try {
+      const testRes = await fetch(testUrl, {
+        method: 'HEAD',
+        redirect: 'follow',
+        signal: AbortSignal.timeout(3000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      });
+      if (testRes.ok) {
+        console.log(`[cancel-url] Found working cancel path: ${testUrl}`);
+        return res.json({ url: testUrl });
+      }
+    } catch {}
+  }
+
+  // Step 6: Fallback — return company homepage
+  const homepage = `https://www.${domain}`;
+  console.log(`[cancel-url] Fallback to homepage: ${homepage}`);
+  return res.json({ url: homepage });
 });
 
 // GET /api/subscriptions/plans-url?service=Netflix  (must be before /:id)
@@ -389,7 +468,11 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   if (!sub) return res.status(404).json({ error: 'Subscription not found' });
   const updated = await updateSubscription(Number(req.params.id), req.body);
   if (updated && updated.status === 'active' && updated.renewal_date) {
-    await scheduleNotifications(updated.id, req.userId!, updated.renewal_date);
+    if (updated.notifications_enabled === 1) {
+      await scheduleNotifications(updated.id, req.userId!, updated.renewal_date);
+    } else {
+      await cancelNotifications(updated.id);
+    }
   }
   return res.json(updated);
 });

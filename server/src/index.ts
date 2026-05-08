@@ -28,6 +28,9 @@ app.use('/api/receipt', receiptRouter);
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Serve static logos (hosted on our server, not dependent on external URLs)
+app.use('/logos', express.static(path.join(__dirname, '../public/logos')));
+
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');

@@ -83,12 +83,21 @@ router.get('/status', requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-// GET /api/push/ping — TEMPORARY: send test push to first subscriber (no auth)
+// GET /api/push/ping — send test push to first FCM user (no auth)
+// Supports ?title=X&body=Y query params for custom message
 router.get('/ping', async (_req, res) => {
-  const { rows } = await pool.query('SELECT DISTINCT user_id FROM push_subscriptions LIMIT 1');
-  if (rows.length === 0) return res.json({ error: 'no_subs' });
-  const results = await sendPushToUser(rows[0].user_id, 'SubTracker', 'בדיקה: ההתראות עובדות! 🎉');
+  const { rows } = await pool.query('SELECT DISTINCT user_id FROM fcm_tokens LIMIT 1');
+  if (rows.length === 0) return res.json({ error: 'no_fcm_tokens' });
+  const title = (_req.query.title as string) || '\u05DE\u05E0\u05D4\u05DC \u05DE\u05E0\u05D5\u05D9\u05D9\u05DD';
+  const body = (_req.query.body as string) || '\u05D1\u05D3\u05D9\u05E7\u05D4: \u05D4\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA! \uD83C\uDF89';
+  const results = await sendPushToUser(rows[0].user_id, title, body);
   return res.json({ userId: rows[0].user_id, results });
+});
+
+// GET /api/push/cleanup-web — remove all web push subscriptions (native app only now)
+router.get('/cleanup-web', async (_req, res) => {
+  const { rowCount } = await pool.query('DELETE FROM push_subscriptions');
+  return res.json({ ok: true, deleted: rowCount });
 });
 
 // POST /api/push/test — send a test notification to the logged-in user
@@ -98,8 +107,50 @@ router.post('/test', requireAuth, async (req: AuthRequest, res) => {
   if (subs.length === 0 && fcmRows.length === 0) {
     return res.status(404).json({ error: 'no_subscription' });
   }
-  const results = await sendPushToUser(req.userId!, 'SubTracker', 'ההתראות עובדות! 🎉');
+  const results = await sendPushToUser(req.userId!, '\u05DE\u05E0\u05D4\u05DC \u05DE\u05E0\u05D5\u05D9\u05D9\u05DD', '\u05D4\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA! \uD83C\uDF89');
   res.json({ ok: true, results });
+});
+
+// GET /api/push/test-scheduled — insert a test notification due in 5 minutes (uses the real scheduler)
+router.get('/test-scheduled', async (_req, res) => {
+  try {
+    // Find first user with an FCM token
+    const { rows: users } = await pool.query('SELECT DISTINCT user_id FROM fcm_tokens LIMIT 1');
+    if (users.length === 0) return res.json({ error: 'no_fcm_tokens' });
+
+    const userId = users[0].user_id;
+    const minutes = parseInt((_req.query.minutes as string) || '4', 10);
+    const fiveMinFromNow = new Date(Date.now() + minutes * 60 * 1000);
+
+    // Find any active subscription for this user (we need a real subscription_id)
+    const { rows: subs } = await pool.query(
+      "SELECT id, company_name FROM subscriptions WHERE user_id = $1 AND status = 'active' LIMIT 1",
+      [userId],
+    );
+    if (subs.length === 0) return res.json({ error: 'no_active_subscriptions' });
+
+    // Remove old test notifications, then insert a fresh one
+    await pool.query(
+      `DELETE FROM scheduled_notifications WHERE user_id = $1 AND offset_key LIKE 'test%'`,
+      [userId],
+    );
+    const testKey = `test-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO scheduled_notifications (subscription_id, user_id, offset_key, scheduled_at)
+       VALUES ($1, $2, $3, $4)`,
+      [subs[0].id, userId, testKey, fiveMinFromNow],
+    );
+
+    return res.json({
+      ok: true,
+      userId,
+      subscription: subs[0].company_name,
+      scheduled_at: fiveMinFromNow.toISOString(),
+      message: `Test notification scheduled for ${fiveMinFromNow.toISOString()} (~5 minutes)`,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: String(err) });
+  }
 });
 
 // POST /api/push/register-device — register FCM token from native Android app

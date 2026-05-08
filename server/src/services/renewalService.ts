@@ -1,5 +1,6 @@
 import { getAllActiveSubscriptionsAllUsers, updateSubscription } from './subscriptionService';
 import { createInvoice, invoiceAlreadyExists } from './invoiceService';
+import { scheduleNotifications } from './pushScheduler';
 
 /**
  * Advances a date string by the subscription's billing cycle.
@@ -53,6 +54,7 @@ export async function processRenewals(): Promise<void> {
 
     // Update the subscription's renewal_date to the next upcoming date
     await updateSubscription(sub.id, { renewal_date: currentDate });
+    await scheduleNotifications(sub.id, sub.user_id, currentDate);
     console.log(`[Renewal] "${sub.company_name}" next renewal → ${currentDate}`);
     processed++;
   }
