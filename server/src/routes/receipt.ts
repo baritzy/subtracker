@@ -36,7 +36,7 @@ Rules:
 - billing_cycle: one of monthly / yearly / quarterly. Default to monthly if unclear.
 - currency: one of ILS / USD / EUR / GBP
 - renewal_date: YYYY-MM-DD format. Extract the exact date shown in the image. If NO date is visible at all, return null. IMPORTANT: never return today's date as a guess — if you are unsure of the date, return null.
-- company_name: infer from service_name when well-known, even if not shown in image. Examples: ChatGPT/GPT-4/OpenAI -> "OpenAI", Netflix -> "Netflix", Spotify -> "Spotify", YouTube Premium/Google One -> "Google", iCloud/Apple TV/Apple Music -> "Apple", WhatsApp/Instagram/Facebook -> "Meta", Adobe/Photoshop/Premiere -> "Adobe", Microsoft 365/Xbox/Copilot -> "Microsoft", Dropbox -> "Dropbox", Notion -> "Notion", Slack -> "Slack", Zoom -> "Zoom", LinkedIn -> "Microsoft", GitHub/Copilot -> "Microsoft". Only leave null if you truly cannot determine the company.
+- company_name: return the well-known BRAND name as consumers know it, NOT the legal company name. The receipt may show legal names — translate them to the recognizable brand. Examples: "Netflix Operations LLC" → "Netflix", "Eleven Labs Inc." → "ElevenLabs", "Google Ireland Limited" → "Google", "Apple Distribution International" → "Apple", "Spotify AB" → "Spotify", "Meta Platforms Inc." → "Meta", "Microsoft Corporation" → "Microsoft", "Adobe Inc." → "Adobe". If you cannot identify the brand, return null.
 - Set any other unknown fields to null
 - If this is NOT a receipt or you cannot find subscription payment details, return ONLY: {"success":false}`;
 
