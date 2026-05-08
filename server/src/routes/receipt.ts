@@ -35,8 +35,9 @@ Return ONLY valid JSON (no markdown, no code blocks, no extra text):
 Rules:
 - billing_cycle: one of monthly / yearly / quarterly. Default to monthly if unclear.
 - currency: one of ILS / USD / EUR / GBP
-- renewal_date: YYYY-MM-DD format, use next expected billing date if visible, otherwise null
-- Set any unknown fields to null
+- renewal_date: YYYY-MM-DD format. ONLY use a date that is clearly and legibly visible in the image. If the date is blurry, unclear, or not explicitly shown, return null. NEVER guess or approximate a date.
+- company_name: infer from service_name when well-known, even if not shown in image. Examples: ChatGPT/GPT-4/OpenAI -> "OpenAI", Netflix -> "Netflix", Spotify -> "Spotify", YouTube Premium/Google One -> "Google", iCloud/Apple TV/Apple Music -> "Apple", WhatsApp/Instagram/Facebook -> "Meta", Adobe/Photoshop/Premiere -> "Adobe", Microsoft 365/Xbox/Copilot -> "Microsoft", Dropbox -> "Dropbox", Notion -> "Notion", Slack -> "Slack", Zoom -> "Zoom", LinkedIn -> "Microsoft", GitHub/Copilot -> "Microsoft". Only leave null if you truly cannot determine the company.
+- Set any other unknown fields to null
 - If this is NOT a receipt or you cannot find subscription payment details, return ONLY: {"success":false}`;
 
   try {
