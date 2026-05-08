@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+﻿import { Router, Response } from 'express';
 import multer from 'multer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { requireAuth, AuthRequest } from '../middleware/auth';
@@ -30,13 +30,15 @@ Return ONLY valid JSON (no markdown, no code blocks, no extra text):
   "currency": "ILS",
   "billing_cycle": "monthly",
   "renewal_date": "2024-06-15",
+  "cancel_url": "https://...",
   "notes": null
 }
 Rules:
 - billing_cycle: one of monthly / yearly / quarterly. Default to monthly if unclear.
 - currency: one of ILS / USD / EUR / GBP
-- renewal_date: YYYY-MM-DD format. Read ONLY dates that appear as literal text in the image — do not calculate, infer, or add time periods to any date. If the image shows "27.4.26" or "April 27, 2026", return "2026-04-27". If no date text is visible in the image, return null.
-- company_name: return the well-known BRAND name as consumers know it, NOT the legal company name. The receipt may show legal names — translate them to the recognizable brand. Examples: "Netflix Operations LLC" → "Netflix", "Eleven Labs Inc." → "ElevenLabs", "Google Ireland Limited" → "Google", "Apple Distribution International" → "Apple", "Spotify AB" → "Spotify", "Meta Platforms Inc." → "Meta", "Microsoft Corporation" → "Microsoft", "Adobe Inc." → "Adobe". If you cannot identify the brand, return null.
+- renewal_date: YYYY-MM-DD format. Read ONLY dates that appear as literal text in the image â€” do not calculate, infer, or add time periods to any date. If the image shows "27.4.26" or "April 27, 2026", return "2026-04-27". If no date text is visible in the image, return null.
+- cancel_url: use your knowledge of the service to provide the direct URL where users can cancel or manage their subscription (account/billing settings page). Examples: Netflix → "https://www.netflix.com/cancel", Spotify → "https://www.spotify.com/account/subscription", CapCut → "https://www.capcut.com/account/membership", ChatGPT/OpenAI → "https://platform.openai.com/account/billing", ElevenLabs → "https://elevenlabs.io/subscription". For any service you know, provide the URL. Return null only if you truly have no idea.
+- company_name: return the well-known BRAND name as consumers know it, NOT the legal company name. The receipt may show legal names â€” translate them to the recognizable brand. Examples: "Netflix Operations LLC" â†’ "Netflix", "Eleven Labs Inc." â†’ "ElevenLabs", "Google Ireland Limited" â†’ "Google", "Apple Distribution International" â†’ "Apple", "Spotify AB" â†’ "Spotify", "Meta Platforms Inc." â†’ "Meta", "Microsoft Corporation" â†’ "Microsoft", "Adobe Inc." â†’ "Adobe". If you cannot identify the brand, return null.
 - Set any other unknown fields to null
 - If this is NOT a receipt or you cannot find subscription payment details, return ONLY: {"success":false}`;
 
