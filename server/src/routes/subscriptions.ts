@@ -258,6 +258,13 @@ router.get('/logo-db-status', (req: AuthRequest, res: Response) => {
   });
 });
 
+function normalizeCompanyForLogo(name: string): string {
+  return name
+    .replace(/(inc.?|llc.?|ltd.?|corp.?|gmbh|s.a.|b.v.)/gi, "")
+    .replace(/s+/g, " ")
+    .trim();
+}
+
 // GET /api/subscriptions/logo-search?q=Anthropic  (must be before /:id)
 router.get('/logo-search', async (req: AuthRequest, res: Response) => {
   const q = (req.query.q as string ?? '').trim();
@@ -272,7 +279,7 @@ router.get('/logo-search', async (req: AuthRequest, res: Response) => {
 
   // Step 2: Clearbit autocomplete
   try {
-    const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(q)}`;
+    const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(normalizeCompanyForLogo(q))}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
     const results = await r.json() as { name: string; domain: string; logo: string }[];
     const queryWords = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -307,7 +314,7 @@ router.get('/cancel-url', async (req: AuthRequest, res: Response) => {
   if (!url) {
     // Fallback: try to find the company domain and return its account/settings page
     try {
-      const suggest = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(service)}`);
+      const suggest = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(normalizeCompanyForLogo(service))}`);
       const results = await suggest.json() as { domain: string }[];
       if (results.length > 0) {
         url = `https://${results[0].domain}/account`;
