@@ -18,7 +18,7 @@ router.post('/scan', upload.single('file'), async (req: AuthRequest, res: Respon
   if (!apiKey) return res.status(500).json({ success: false, error: 'Gemini not configured' });
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const prompt = `Analyze this receipt or invoice image/PDF and extract recurring subscription details.
 Return ONLY valid JSON (no markdown, no code blocks, no extra text):
