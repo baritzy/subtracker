@@ -35,7 +35,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no extra text):
 Rules:
 - billing_cycle: one of monthly / yearly / quarterly. Default to monthly if unclear.
 - currency: one of ILS / USD / EUR / GBP
-- renewal_date: YYYY-MM-DD format. Extract the exact date shown in the image. If NO date is visible at all, return null. IMPORTANT: never return today's date as a guess — if you are unsure of the date, return null.
+- renewal_date: YYYY-MM-DD format. Read ONLY dates that appear as literal text in the image — do not calculate, infer, or add time periods to any date. If the image shows "27.4.26" or "April 27, 2026", return "2026-04-27". If no date text is visible in the image, return null.
 - company_name: return the well-known BRAND name as consumers know it, NOT the legal company name. The receipt may show legal names — translate them to the recognizable brand. Examples: "Netflix Operations LLC" → "Netflix", "Eleven Labs Inc." → "ElevenLabs", "Google Ireland Limited" → "Google", "Apple Distribution International" → "Apple", "Spotify AB" → "Spotify", "Meta Platforms Inc." → "Meta", "Microsoft Corporation" → "Microsoft", "Adobe Inc." → "Adobe". If you cannot identify the brand, return null.
 - Set any other unknown fields to null
 - If this is NOT a receipt or you cannot find subscription payment details, return ONLY: {"success":false}`;
