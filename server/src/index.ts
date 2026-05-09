@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -7,6 +7,7 @@ import gmailRouter from './routes/gmail';
 import authRouter from './routes/auth';
 import pushRouter from './routes/push';
 import receiptRouter from './routes/receipt';
+import premiumRouter from './routes/premium';
 import { initDb } from './db/database';
 
 import { startRenewalScheduler } from './services/renewalService';
@@ -24,6 +25,7 @@ app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/gmail', gmailRouter);
 app.use('/api/push', pushRouter);
 app.use('/api/receipt', receiptRouter);
+app.use('/api/premium', premiumRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -87,3 +89,4 @@ start().catch(err => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
+

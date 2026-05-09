@@ -1,0 +1,10 @@
+-- Run manually in Supabase SQL Editor
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_purchase_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_purchased_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS api_quota (
+  date DATE PRIMARY KEY,
+  google_searches INTEGER NOT NULL DEFAULT 0,
+  alert_sent BOOLEAN NOT NULL DEFAULT FALSE
+);

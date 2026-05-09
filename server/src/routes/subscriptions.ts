@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+﻿import { Router, Response } from 'express';
 import {
   getAllSubscriptions,
   getSubscriptionById,
@@ -13,6 +13,7 @@ import { getInvoicesForSubscription } from '../services/invoiceService';
 import { lookupCancelUrl } from '../services/cancelUrlService';
 import { lookupPlansUrl } from '../services/plansUrlService';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { pool } from '../db/database';
 import { scheduleNotifications, cancelNotifications } from '../services/pushScheduler';
 import { smartCompanySearch, saveUserLogo, getQuotaStatus } from '../services/companySearchService';
 
@@ -452,6 +453,20 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   if (!company_name || !service_name || cost == null || !billing_cycle || cost_per_cycle == null || !renewal_date) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+  // Check freemium limit
+  const { rows: [freemiumUser] } = await pool.query<{ is_premium: boolean }>(
+    'SELECT is_premium FROM users WHERE id = $1', [req.userId]
+  );
+  if (!freemiumUser?.is_premium) {
+    const { rows: [{ count }] } = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) FROM subscriptions WHERE user_id = $1 AND status = 'active'",
+      [req.userId]
+    );
+    if (parseInt(count) >= 4) {
+      return res.status(403).json({ error: 'free_limit_reached', freeLimit: 4 });
+    }
+  }
+
   const sub = await createSubscription({
     company_name, service_name, cost, billing_cycle, cost_per_cycle,
     custom_cycle_months, renewal_date, start_date, cancel_url, notes,
@@ -504,3 +519,4 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
