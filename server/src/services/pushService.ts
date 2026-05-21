@@ -117,7 +117,7 @@ async function sendFcmToUser(
       console.error(`[FCM] Error for user ${userId}: ${errMsg}`);
 
       // Remove invalid tokens
-      if (errMsg.includes('not-registered') || errMsg.includes('invalid-registration-token')) {
+      if (errMsg.includes('not-registered') || errMsg.includes('invalid-registration-token') || errMsg.toLowerCase().includes('notregistered')) {
         await pool.query('DELETE FROM fcm_tokens WHERE token = $1', [row.token]);
         results.push({ endpoint: `fcm:${row.token.slice(-20)}`, status: 'expired' });
       } else {
