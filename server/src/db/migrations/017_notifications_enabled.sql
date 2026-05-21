@@ -1,0 +1,1 @@
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notifications_enabled INTEGER NOT NULL DEFAULT 1;
