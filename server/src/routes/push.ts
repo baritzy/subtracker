@@ -5,6 +5,18 @@ import { pool } from '../db/database';
 
 const router = Router();
 
+// Debug: log all incoming push requests before auth
+router.use((req, _res, next) => {
+  const hasAuth = !!req.headers.authorization;
+  const entry = { method: req.method, path: req.path, hasAuth, at: new Date().toISOString() };
+  console.log('[Push] request:', JSON.stringify(entry));
+  pool.query(
+    `INSERT INTO app_state (key, value, updated_at) VALUES ('last_push_req', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [JSON.stringify(entry)],
+  ).catch(() => {});
+  next();
+});
+
 // GET /api/push/diag — public diagnostic (counts only, no user data)
 router.get('/diag', async (_req, res) => {
   try {
