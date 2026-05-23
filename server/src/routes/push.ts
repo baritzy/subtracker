@@ -156,23 +156,36 @@ router.get('/test-scheduled', async (_req, res) => {
 // POST /api/push/register-device — register FCM token from native Android app
 router.post('/register-device', requireAuth, async (req: AuthRequest, res) => {
   const { token, device_type } = req.body as { token?: string; device_type?: string };
+  const attempt = { user: req.userId!, at: new Date().toISOString(), token_prefix: token?.slice(0, 20) ?? 'missing' };
+  console.log('[FCM] register-device attempt:', JSON.stringify(attempt));
+
   if (!token) {
+    await pool.query(
+      `INSERT INTO app_state (key, value, updated_at) VALUES ('last_fcm_reg', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [JSON.stringify({ ...attempt, result: 'missing_token' })],
+    ).catch(() => {});
     return res.status(400).json({ error: 'Missing FCM token' });
   }
   try {
-    // Remove old tokens for this user
     await pool.query('DELETE FROM fcm_tokens WHERE user_id = $1', [req.userId!]);
-    // Insert new token
     await pool.query(
       `INSERT INTO fcm_tokens (user_id, token, device_type)
        VALUES ($1, $2, $3)
        ON CONFLICT (token) DO UPDATE SET user_id = $1, device_type = $3, updated_at = NOW()`,
       [req.userId!, token, device_type ?? 'android'],
     );
+    await pool.query(
+      `INSERT INTO app_state (key, value, updated_at) VALUES ('last_fcm_reg', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [JSON.stringify({ ...attempt, result: 'ok' })],
+    ).catch(() => {});
     console.log(`[FCM] Registered token for user ${req.userId!} (${device_type ?? 'android'})`);
     res.json({ ok: true });
   } catch (err) {
     console.error('[FCM] Registration error:', err);
+    await pool.query(
+      `INSERT INTO app_state (key, value, updated_at) VALUES ('last_fcm_reg', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [JSON.stringify({ ...attempt, result: 'error', error: String(err) })],
+    ).catch(() => {});
     res.status(500).json({ error: 'Failed to register device' });
   }
 });
