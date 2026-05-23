@@ -150,14 +150,10 @@ async function sendDueNotifications(): Promise<void> {
 }
 
 export function startPushScheduler(): void {
-  // Poll every 30 minutes. Tradeoff: a renewal reminder targeted at e.g. 09:00
-  // can fire as late as 09:30 in the worst case (just missed a tick).
-  // For 7d / 24h / 3h reminders this is fine — users don't notice 30 min delay
-  // on a "renews tomorrow" toast. We pay this in exchange for letting the DB
-  // (Supabase / Neon) auto-suspend between checks, which keeps us on free tier.
-  // If we ever need minute-level precision (e.g. a "renews in 5 minutes" alert),
-  // this constant must shrink and we must accept the higher compute cost.
-  const INTERVAL_MS = 30 * 60 * 1000;
+  // Poll every 2 hours. This keeps Neon free-tier compute usage at ~1h/day
+  // (12 wakes x 5-min minimum = 60 min), well within the 100 CU-hour monthly limit.
+  // Worst case: a notification fires up to 2 hours late -- acceptable for 7d/24h/3h reminders.
+  const INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
   backfillScheduledNotifications()
     .then(() => sendDueNotifications())
@@ -167,5 +163,5 @@ export function startPushScheduler(): void {
     sendDueNotifications().catch(err => console.error('[Push] Scheduler error:', err));
   }, INTERVAL_MS);
 
-  console.log('[Push] Scheduler started — running every 30 minutes.');
+  console.log('[Push] Scheduler started -- running every 2 hours.');
 }
