@@ -37,6 +37,8 @@ router.get('/diag', async (_req, res) => {
       pool.query(`SELECT scheduled_at, offset_key FROM scheduled_notifications WHERE NOT sent ORDER BY scheduled_at LIMIT 3`),
     ]);
 
+    const appState = await pool.query('SELECT key, value::text, updated_at FROM app_state ORDER BY updated_at DESC');
+
     return res.json({
       table: true,
       scheduled: Number(sched.rows[0].count),
@@ -45,6 +47,7 @@ router.get('/diag', async (_req, res) => {
       push_subs: Number(subs.rows[0].count),
       next_upcoming: next.rows,
       now: new Date().toISOString(),
+      app_state: appState.rows,
     });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
