@@ -205,4 +205,20 @@ router.post('/register-device', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// GET /api/push/test-supabase — test Supabase connectivity from this server
+router.get('/test-supabase', async (_req, res) => {
+  const { Pool: PgPool } = await import('pg');
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (!supabaseUrl) return res.json({ error: 'SUPABASE_URL not set' });
+  const pool2 = new PgPool({ connectionString: supabaseUrl, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 });
+  try {
+    const r = await pool2.query('SELECT version()');
+    await pool2.end();
+    return res.json({ ok: true, version: r.rows[0].version.slice(0, 50) });
+  } catch (err) {
+    await pool2.end().catch(() => {});
+    return res.json({ ok: false, error: String(err) });
+  }
+});
+
 export default router;
