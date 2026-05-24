@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+﻿import { google } from 'googleapis';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import { pool } from '../db/database';
@@ -87,5 +87,6 @@ export function verifyToken(token: string): { userId: number; email: string } | 
 export async function getUserById(id: number): Promise<AuthUser | null> {
   const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
   if (!rows[0]) return null;
-  return { ...rows[0], is_premium: rows[0].is_premium === 1 };
+  return { ...rows[0], is_premium: Boolean(rows[0].is_premium) };
 }
+

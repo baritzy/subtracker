@@ -30,6 +30,11 @@ app.use('/api/premium', premiumRouter);
 // Health check
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Privacy Policy
+app.get('/privacy', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../public/privacy.html'));
+});
+
 // Serve static logos (hosted on our server, not dependent on external URLs)
 app.use('/logos', express.static(path.join(__dirname, '../public/logos')));
 
