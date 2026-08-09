@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Circular arrow (counterclockwise) -->
+    <path
+        android:pathData="M32,8 A24,24 0 1,1 12,44"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <!-- Arrowhead on the arc end (bottom-left, pointing down-left) -->
+    <path
+        android:pathData="M12,44 L6,38 L18,36Z"
+        android:fillColor="#FFFFFF"/>
+    <!-- Arrow pointing up-right from center -->
+    <path
+        android:pathData="M28,36 L42,22"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"/>
+    <!-- Arrowhead pointing up-right -->
+    <path
+        android:pathData="M42,22 L42,32 L32,22Z"
+        android:fillColor="#FFFFFF"/>
+</vector>

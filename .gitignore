@@ -17,9 +17,11 @@ google-services.json
 promotion_codes.csv
 promo-codes-tracker.md
 
-# App source lives here and carries the keystore + its plaintext password.
-# Do not add it to this public repo until the password is moved out.
-subtracker-kotlin/
+# App source IS now tracked (2026-08-09). The keystore password was moved out
+# of app/build.gradle.kts into keystore.properties, which subtracker-kotlin/
+# .gitignore excludes along with *.jks, local.properties and
+# google-services.json. Verified the release build still signs with the same
+# upload key (SHA-1 24:14:62) after the change.
 
 server/data/
 *.db

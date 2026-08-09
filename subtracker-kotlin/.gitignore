@@ -1,0 +1,36 @@
+# NEVER commit signing material or secrets.
+# The remote for this repo (baritzy/subtracker) is PUBLIC. Leaking the
+# keystore or its password would let anyone sign builds that Play accepts
+# as authentic updates to com.baritzy.subtracker.
+*.jks
+*.keystore
+keystore.properties
+local.properties
+google-services.json
+
+# keystore.properties.example IS meant to be committed, it only has placeholders.
+!keystore.properties.example
+
+# Build output. app/build alone is ~368MB, .gradle ~23MB.
+# The actual source is under 2MB.
+build/
+.gradle/
+
+# Shipped binaries. 26 of these were sitting loose in the project root.
+# They are regenerable from source and would bloat the repo for no benefit.
+# Released artifacts belong in P-projects/Sub Tracker/output/, not here.
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS
+.DS_Store

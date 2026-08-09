@@ -1,0 +1,32 @@
+<!doctype html><html lang="pl-PL"><head><script async src="https://www.googletagmanager.com/gtag/js?id=G-VM6K20BLBT"></script><script>window.dataLayer = window.dataLayer || [];
+      window.gtagId = 'G-VM6K20BLBT';
+
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-VM6K20BLBT');</script><script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+
+        window.dataLayer = window.dataLayer || [];
+        window.pixelId = '719583852591340';
+        fbq.disablePushState = true;
+        fbq('init', '719583852591340');</script><meta charset="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="google-site-verification" content="ZNoejMYiXQqes79ODNi5Dm4_taEbAQZfto1DBM8WPfU"/><link rel="shortcut icon" type="image/x-icon" href="/static/images/favicon.png"/><script defer="defer" src="/static/js/chunk-vendors.js"></script><script defer="defer" src="/static/js/index.js"></script><link href="/static/css/index.css" rel="stylesheet"></head><body class="loading"><div id="app-loader"></div><div id="app"></div><script type="module">import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js';
+      import { getMessaging, getToken } from 'https://www.gstatic.com/firebasejs/9.8.4/firebase-messaging.js';
+
+      const firebaseApp = initializeApp({
+        apiKey: 'AIzaSyD01iF9sT4vCmiSSS6KLzWyiFmzO2M5Wr8',
+        authDomain: 'regde-media-portal-uat.firebaseapp.com',
+        projectId: 'regde-media-portal-uat',
+        storageBucket: 'regde-media-portal-uat.appspot.com',
+        messagingSenderId: '282401334422',
+        appId: '1:282401334422:web:4e77b49aedcd1f18cdceb7',
+        measurementId: 'G-Z6FF003RHP',
+      });
+
+      window.messaging = {
+        getMessaging: getMessaging(firebaseApp),
+        getToken,
+      }</script></body></html>
