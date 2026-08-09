@@ -12,6 +12,15 @@ dist/
 local.properties
 google-services.json
 
+# 50 single-use promo codes for the paid product. Publishing these would
+# let anyone redeem premium for free.
+promotion_codes.csv
+promo-codes-tracker.md
+
+# App source lives here and carries the keystore + its plaintext password.
+# Do not add it to this public repo until the password is moved out.
+subtracker-kotlin/
+
 server/data/
 *.db
 *.db-shm
