@@ -1,4 +1,41 @@
 ﻿import 'dotenv/config';
+
+// Process-level crash safety net. Several async route handlers in this
+// codebase (see routes/*.ts — an audit found roughly a dozen) do not wrap
+// their body in try/catch. A thrown/rejected error inside one of those
+// becomes an unhandled rejection at the Node process level, not an Express
+// error — Express 4 (this app's version) does not catch rejections from
+// async handlers, so nothing here stops Node's default behavior of crashing
+// the whole process over it. This already happened once in production
+// (2026-07-19, POST /api/premium/verify threw on every call due to a
+// Postgres type mismatch, crashing the server for all users on a single
+// bad request).
+//
+// This is registered before any other import/module runs, so it is armed
+// during initDb() at startup too, not just during request handling.
+//
+// Deliberate trade-off, not an oversight: Node's own docs say a process
+// should ideally restart after an uncaughtException, since the error can
+// leave in-flight state undefined. We are choosing to log loudly and stay
+// up anyway, because for this app a logged error with the other ~97 users
+// still being served beats a hard outage with nobody on call to restart it.
+// The real fix is wrapping the individual handlers (tracked as follow-up
+// work); this net does not replace that, it only limits the blast radius
+// until it's done.
+process.on('unhandledRejection', (reason) => {
+  console.error(
+    '[FATAL-CAUGHT] Unhandled promise rejection (process kept alive):',
+    reason instanceof Error ? reason.stack ?? reason.message : reason
+  );
+});
+
+process.on('uncaughtException', (err) => {
+  console.error(
+    '[FATAL-CAUGHT] Uncaught exception (process kept alive):',
+    err instanceof Error ? err.stack ?? err.message : err
+  );
+});
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -33,6 +70,15 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 // Privacy Policy
 app.get('/privacy', (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/privacy.html'));
+});
+
+// app-ads.txt — required by AdMob to verify ad inventory ownership.
+// Must be registered before the SPA catch-all ('*') below, and must NOT
+// go through express.static(clientDist) (there is no such file in the
+// client build, so that would fall through to the catch-all's index.html).
+app.get('/app-ads.txt', (_req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(__dirname, '../public/app-ads.txt'));
 });
 
 // Serve static logos (hosted on our server, not dependent on external URLs)
