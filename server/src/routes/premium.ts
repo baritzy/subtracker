@@ -10,14 +10,26 @@ const FREE_LIMIT = 4;
 
 // GET /api/premium/status
 router.get('/status', async (req: AuthRequest, res: Response) => {
-  const userId = req.userId!;
-  const [userRes, countRes] = await Promise.all([
-    pool.query<{ is_premium: boolean }>('SELECT is_premium FROM users WHERE id = $1', [userId]),
-    pool.query<{ count: string }>("SELECT COUNT(*) FROM subscriptions WHERE user_id = $1 AND status = 'active'", [userId]),
-  ]);
-  const isPremium = userRes.rows[0]?.is_premium ?? false;
-  const count = parseInt(countRes.rows[0]?.count ?? '0');
-  res.json({ isPremium, subscriptionCount: count, freeLimit: FREE_LIMIT });
+  try {
+    const userId = req.userId!;
+    const [userRes, countRes] = await Promise.all([
+      // is_premium is INTEGER (0/1) in Postgres — node-postgres returns it as a
+      // JS number, not a boolean. Coerce below so this matches /api/auth/me,
+      // which already does the same via authService.getUserById(). The Android
+      // client deserialises this field into a Kotlin Boolean with Gson; a JSON
+      // number there throws and is swallowed by an empty catch client-side.
+      pool.query<{ is_premium: number | boolean }>('SELECT is_premium FROM users WHERE id = $1', [userId]),
+      pool.query<{ count: string }>("SELECT COUNT(*) FROM subscriptions WHERE user_id = $1 AND status = 'active'", [userId]),
+    ]);
+    const isPremium = Boolean(userRes.rows[0]?.is_premium ?? false);
+    const count = parseInt(countRes.rows[0]?.count ?? '0');
+    res.json({ isPremium, subscriptionCount: count, freeLimit: FREE_LIMIT });
+  } catch (err) {
+    // Same safety net as /verify below — an unhandled rejection here would
+    // otherwise hang the request until the client's 60s OkHttp timeout.
+    console.error('[premium] /status handler error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 // POST /api/premium/verify — called after Google Play purchase.
@@ -40,12 +52,17 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
 //      known, temporary gap: enforcement is the next step once shadow-mode
 //      logs show it's safe to flip on.
 //   4. The one guard that DOES enforce right now, independent of Google:
-//      a purchaseToken already bound to a different user is refused. This
-//      stops the "share one receipt token across many accounts" case
-//      without depending on Google at all.
+//      a purchaseToken already bound to a different REAL account is refused.
+//      This stops the "share one receipt token across many accounts" case
+//      without depending on Google at all. If the different account holding
+//      the token is itself anonymous (`google_id` starts with `anon_`), this
+//      is not sharing — it's the same person moving from a pre-login guest
+//      session to their real account (or reinstalling as a fresh guest), and
+//      the token is transferred instead of refused (see below).
 //
-// Never revokes existing premium — this endpoint only ever writes
-// is_premium forward, so it cannot break anyone already premium.
+// Never revokes existing premium for a REAL account — the only revocation
+// this endpoint ever performs is clearing the orphaned anon row during a
+// transfer, which by definition never had a human looking at that account.
 router.post('/verify', async (req: AuthRequest, res: Response) => {
   try {
     const { purchaseToken } = req.body;
@@ -53,14 +70,23 @@ router.post('/verify', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'purchaseToken required' });
     }
 
-    // Application-level guard (no Google dependency): refuse if this exact
-    // token is already bound to a DIFFERENT user. Closes token sharing/replay.
-    const { rows: existing } = await pool.query<{ id: number }>(
-      'SELECT id FROM users WHERE premium_purchase_token = $1 AND id != $2 LIMIT 1',
+    // Application-level guard (no Google dependency): look up whether this
+    // exact token is already bound to a DIFFERENT user.
+    //
+    // NOTE (pre-existing, not fixed here): premium_purchase_token is plain
+    // TEXT with no unique index, so this is read-then-write, not an atomic
+    // check-and-set. Two /verify calls racing with the same brand-new token
+    // could both pass this SELECT before either UPDATE lands. Out of scope
+    // per instructions (no migrations) — flagging for a future fix.
+    const { rows: existing } = await pool.query<{ id: number; google_id: string }>(
+      'SELECT id, google_id FROM users WHERE premium_purchase_token = $1 AND id != $2 LIMIT 1',
       [purchaseToken, req.userId]
     );
-    if (existing.length > 0) {
-      console.error(`[premium] REJECTED — purchaseToken already bound to user ${existing[0].id}, refusing grant for user ${req.userId}`);
+    const priorHolder = existing[0];
+    if (priorHolder && !priorHolder.google_id.startsWith('anon_')) {
+      // A real account already owns this token — refuse. Two different
+      // people sharing one receipt.
+      console.error(`[premium] REJECTED — purchaseToken already bound to real user ${priorHolder.id}, refusing grant for user ${req.userId}`);
       return res.json({ ok: true, verified: false, reason: 'token_already_used' });
     }
 
@@ -70,10 +96,32 @@ router.post('/verify', async (req: AuthRequest, res: Response) => {
     console.log(`[premium] Shadow-mode Play verification — user ${req.userId}, token ${purchaseToken}, result ${JSON.stringify(result)}`);
 
     // is_premium is INTEGER (0/1) in Postgres, not BOOLEAN — write 1, not TRUE.
-    await pool.query(
-      'UPDATE users SET is_premium = 1, premium_purchase_token = $1, premium_purchased_at = NOW() WHERE id = $2',
-      [purchaseToken, req.userId]
-    );
+    // If priorHolder is set here, it's guaranteed anonymous (real accounts
+    // returned above) — same person, two identities (guest-before-login or a
+    // reinstalled guest). Clear the orphaned anon row and grant the caller in
+    // ONE transaction, so a crash between the two writes can never leave the
+    // token owned by nobody, or worse, both rows premium at once.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (priorHolder) {
+        await client.query(
+          'UPDATE users SET is_premium = 0, premium_purchase_token = NULL WHERE id = $1',
+          [priorHolder.id]
+        );
+        console.log(`[premium] TRANSFER — purchaseToken moved from anon user ${priorHolder.id} to user ${req.userId}`);
+      }
+      await client.query(
+        'UPDATE users SET is_premium = 1, premium_purchase_token = $1, premium_purchased_at = NOW() WHERE id = $2',
+        [purchaseToken, req.userId]
+      );
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
     res.json({ ok: true, verified: result.status === 'valid' });
   } catch (err) {
     // Safety net: never let this handler reject unhandled. Express 4 + async

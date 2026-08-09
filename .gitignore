@@ -1,6 +1,17 @@
 node_modules/
 dist/
 .env
+
+# NEVER commit signing material. This repo is PUBLIC.
+# Leaking release-keystore.jks plus the password in app/build.gradle.kts
+# would let anyone sign builds that Play accepts as authentic updates.
+*.jks
+*.keystore
+*.p12
+*.pem
+local.properties
+google-services.json
+
 server/data/
 *.db
 *.db-shm
