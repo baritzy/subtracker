@@ -2,6 +2,7 @@ package com.baritzy.subtracker.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.baritzy.subtracker.analytics.Analytics
 import com.baritzy.subtracker.data.api.SubTrackerApi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,8 @@ enum class PremiumState { UNKNOWN, FREE, PREMIUM }
 @Singleton
 class PremiumRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val api: SubTrackerApi
+    private val api: SubTrackerApi,
+    private val analytics: Analytics
 ) {
     companion object {
         private const val TAG = "PremiumRepository"
@@ -63,6 +65,13 @@ class PremiumRepository @Inject constructor(
 
     private val _state = MutableStateFlow(seedInitialState())
     val state: StateFlow<PremiumState> = _state
+
+    init {
+        // Reflect the seeded cold-start value immediately -- don't wait for
+        // the first recompute(), which may be seconds away (async billing +
+        // network) or may never happen this session (no signal changes).
+        analytics.setPremiumState(_state.value)
+    }
 
     // Seeds ONLY from a persisted, previously-confirmed PREMIUM flag -- never
     // FREE, and never from BillingManager (whose own StateFlow starts at
@@ -101,6 +110,7 @@ class PremiumRepository @Inject constructor(
         }
         _state.value = next
         prefs.edit().putBoolean(KEY_LAST_KNOWN_PREMIUM, next == PremiumState.PREMIUM).apply()
+        analytics.setPremiumState(next)
     }
 
     // Reset on logout and on any 401: without this, user A's premium on a
@@ -115,6 +125,7 @@ class PremiumRepository @Inject constructor(
         serverPremium = false
         _state.value = PremiumState.UNKNOWN
         prefs.edit().clear().apply()
+        analytics.setPremiumState(PremiumState.UNKNOWN)
     }
 
     // Calls GET /api/premium/status. Every failure is logged explicitly --

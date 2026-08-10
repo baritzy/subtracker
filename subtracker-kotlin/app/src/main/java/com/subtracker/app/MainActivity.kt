@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.baritzy.subtracker.ads.AdManager
+import com.baritzy.subtracker.analytics.Analytics
 import com.baritzy.subtracker.billing.BillingManager
 import com.baritzy.subtracker.data.api.SubTrackerApi
 import com.baritzy.subtracker.data.repository.PremiumRepository
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var api: SubTrackerApi
     @Inject lateinit var premiumRepository: PremiumRepository
+    @Inject lateinit var analytics: Analytics
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -46,7 +48,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         AdManager.initialize(this, premiumRepository)
-        BillingManager.initialize(this, premiumRepository) { purchaseToken ->
+        BillingManager.initialize(this, premiumRepository, analytics) { purchaseToken ->
             lifecycleScope.launch {
                 try {
                     api.verifyPremium(mapOf("purchaseToken" to purchaseToken))

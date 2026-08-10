@@ -43,6 +43,16 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-8398995241935603~4064674607"/>
 
+        <!-- Adding firebase-analytics-ktx pulls in play-services-measurement-api,
+             which declares this same property pointing at a different resource
+             than play-services-ads-lite (AdMob, already in use). Manifest merge
+             fails without an explicit resolution here. Keeping the AdMob (gma_)
+             config since ads are the pre-existing, tested integration. -->
+        <property
+            android:name="android.adservices.AD_SERVICES_CONFIG"
+            android:resource="@xml/gma_ad_services_config"
+            tools:replace="android:resource" />
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="renewal_reminders" />

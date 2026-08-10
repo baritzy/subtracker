@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.baritzy.subtracker.analytics.Analytics
 import com.baritzy.subtracker.billing.BillingManager
 import com.baritzy.subtracker.data.model.CreateSubscriptionRequest
 import com.baritzy.subtracker.data.model.ReceiptScanResponse
@@ -55,6 +56,7 @@ class DashboardViewModel @Inject constructor(
     private val repository: SubscriptionRepository,
     private val fcmTokenManager: FcmTokenManager,
     private val premiumRepository: PremiumRepository,
+    private val analytics: Analytics,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -86,6 +88,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getActiveSubscriptions().collect { subs ->
                 _uiState.update { it.copy(subscriptions = subs, isLoading = false) }
+                analytics.setSubscriptionCountBucket(subs.size)
                 // Auto-update missing logos (only once per session)
                 if (!_logosUpdated) {
                     _logosUpdated = true
@@ -153,6 +156,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun showAddForm() {
+        analytics.subscriptionAddStarted()
         _uiState.update { it.copy(showAddForm = true, editingSubscription = null) }
     }
 
@@ -169,6 +173,9 @@ class DashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isScanning = true, scanError = null) }
             val result = repository.scanReceipt(context, uri)
             if (result != null && result.success) {
+                // Also an add-flow entry point (prefilled from the receipt), distinct
+                // from the manual "+" button in showAddForm() above.
+                analytics.subscriptionAddStarted()
                 _uiState.update { it.copy(isScanning = false, scanPrefill = result, showAddForm = true) }
             } else {
                 _uiState.update { it.copy(isScanning = false, scanError = "לא נמצאו פרטים בקבלה, נסה שנית") }
@@ -181,9 +188,14 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun createSubscription(request: CreateSubscriptionRequest) {
+        // Captured before the call: subscriptions state may not have re-collected
+        // yet by the time the response comes back, so this is the reliable read
+        // of "did they have zero subscriptions walking into this add."
+        val isFirstSubscription = _uiState.value.subscriptions.isEmpty()
         viewModelScope.launch {
             val result = repository.createSubscription(request)
             if (result.isSuccess) {
+                analytics.subscriptionAddCompleted(isFirstSubscription)
                 _uiState.update { it.copy(showAddForm = false) }
                 return@launch
             }
@@ -206,6 +218,7 @@ class DashboardViewModel @Inject constructor(
     // error and stop -- never an infinite spinner.
     private suspend fun handleFreeLimitReached(request: CreateSubscriptionRequest) {
         if (premiumRepository.state.value == PremiumState.FREE) {
+            analytics.paywallShown()
             _uiState.update { it.copy(showPaywall = true) }
             return
         }
@@ -224,6 +237,7 @@ class DashboardViewModel @Inject constructor(
                 if (premiumRepository.state.value == PremiumState.FREE) {
                     // The restore genuinely resolved this account to FREE --
                     // now it's a real paywall, not a desync.
+                    analytics.paywallShown()
                     _uiState.update { it.copy(showPaywall = true) }
                 } else {
                     Log.e(

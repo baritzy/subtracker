@@ -2,6 +2,8 @@ package com.baritzy.subtracker.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.baritzy.subtracker.analytics.Analytics
+import com.baritzy.subtracker.analytics.LoginMethod
 import com.baritzy.subtracker.billing.BillingManager
 import com.baritzy.subtracker.data.api.SubTrackerApi
 import com.baritzy.subtracker.data.repository.AuthRepository
@@ -25,7 +27,8 @@ class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val api: SubTrackerApi,
     private val fcmTokenManager: FcmTokenManager,
-    private val premiumRepository: PremiumRepository
+    private val premiumRepository: PremiumRepository,
+    private val analytics: Analytics
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -87,6 +90,7 @@ class LoginViewModel @Inject constructor(
                     }
                     onIdentityChanged()
                     _uiState.update { it.copy(isLoading = false, isLoggedIn = true) }
+                    analytics.loginCompleted(LoginMethod.GOOGLE)
                     // Register FCM in background — don't block login
                     launch { try { fcmTokenManager.ensureTokenRegistered() } catch (_: Exception) {} }
                 } else {
@@ -108,6 +112,7 @@ class LoginViewModel @Inject constructor(
             if (result.isSuccess) {
                 onIdentityChanged()
                 _uiState.update { it.copy(isLoading = false, isLoggedIn = true) }
+                analytics.loginCompleted(LoginMethod.GOOGLE)
                 launch { try { fcmTokenManager.ensureTokenRegistered() } catch (_: Exception) {} }
             } else {
                 _uiState.update { it.copy(isLoading = false, error = "שגיאה בהתחברות") }
@@ -122,6 +127,7 @@ class LoginViewModel @Inject constructor(
             if (result.isSuccess) {
                 onIdentityChanged()
                 _uiState.update { it.copy(isLoading = false, isLoggedIn = true) }
+                analytics.loginCompleted(LoginMethod.GUEST)
                 launch { try { fcmTokenManager.ensureTokenRegistered() } catch (_: Exception) {} }
             } else {
                 _uiState.update {

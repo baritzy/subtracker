@@ -5,7 +5,9 @@ import android.content.Context
 import android.os.SystemClock
 import android.util.Log
 import com.android.billingclient.api.*
+import com.baritzy.subtracker.analytics.Analytics
 import com.baritzy.subtracker.data.repository.PremiumRepository
+import com.baritzy.subtracker.data.repository.PremiumState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -30,15 +32,28 @@ object BillingManager {
     // silently deciding premium on its own.
     private var premiumRepository: PremiumRepository? = null
 
-    fun initialize(context: Context, premiumRepository: PremiumRepository, onPurchase: (purchaseToken: String) -> Unit) {
+    // Same nullable-set-once-in-initialize() pattern as premiumRepository
+    // above -- BillingManager is a plain object, not Hilt-managed, so it
+    // can't @Inject Analytics directly.
+    private var analytics: Analytics? = null
+
+    fun initialize(
+        context: Context,
+        premiumRepository: PremiumRepository,
+        analytics: Analytics,
+        onPurchase: (purchaseToken: String) -> Unit
+    ) {
         this.premiumRepository = premiumRepository
+        this.analytics = analytics
         onPurchaseSuccess = onPurchase
         billingClient = BillingClient.newBuilder(context)
             .setListener { billingResult, purchases ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
                     for (purchase in purchases) {
                         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                            handlePurchase(purchase)
+                            // Listener firing live = a purchase that just happened, not a
+                            // pre-existing one found by checkExistingPurchases() below.
+                            handlePurchase(purchase, isRestore = false)
                         }
                     }
                 }
@@ -106,9 +121,9 @@ object BillingManager {
     // live PurchasesUpdatedListener (a purchase just completed) and by
     // checkExistingPurchases() (a purchase already exists that the listener
     // never fired for, e.g. promo code redemption or reinstall).
-    private fun handlePurchase(purchase: Purchase) {
+    private fun handlePurchase(purchase: Purchase, isRestore: Boolean) {
         if (purchase.isAcknowledged) {
-            grantPremium(purchase)
+            grantPremium(purchase, isRestore)
             return
         }
         val params = AcknowledgePurchaseParams.newBuilder()
@@ -116,16 +131,23 @@ object BillingManager {
             .build()
         billingClient.acknowledgePurchase(params) { result ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                grantPremium(purchase)
+                grantPremium(purchase, isRestore)
             }
         }
     }
 
     // /api/premium/verify is explicitly idempotent and forward-only, so
     // calling it again for a purchase we've already granted is safe.
-    private fun grantPremium(purchase: Purchase) {
+    private fun grantPremium(purchase: Purchase, isRestore: Boolean) {
+        // Only log premium_granted on a real UNKNOWN/FREE -> PREMIUM transition.
+        // Without this check, every throttled refreshPurchasesIfStale() re-check
+        // on an already-premium device (every app resume) would re-fire the event.
+        val wasAlreadyPremium = premiumRepository?.state?.value == PremiumState.PREMIUM
         premiumRepository?.reportLocalBilling(true)
             ?: Log.e(TAG, "grantPremium called but premiumRepository was never wired up via initialize()")
+        if (!wasAlreadyPremium) {
+            analytics?.premiumGranted(isRestore)
+        }
         onPurchaseSuccess?.invoke(purchase.purchaseToken)
     }
 
@@ -148,7 +170,10 @@ object BillingManager {
                 if (purchase.products.contains(PRODUCT_ID) &&
                     purchase.purchaseState == Purchase.PurchaseState.PURCHASED
                 ) {
-                    handlePurchase(purchase)
+                    // A pre-existing purchase found here (reinstall, promo-code
+                    // redemption done inside Play Store, or a resumed session) --
+                    // not one that just happened live via the listener above.
+                    handlePurchase(purchase, isRestore = true)
                 }
             }
             if (!owned) {
@@ -195,6 +220,7 @@ object BillingManager {
                 ))
                 .build()
             billingClient.launchBillingFlow(activity, flowParams)
+            analytics?.purchaseStarted()
         }
     }
 }
